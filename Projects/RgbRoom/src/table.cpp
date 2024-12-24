@@ -14,7 +14,6 @@ const char* ipAdress = CLIENT_01; // Use the IP as a string
 
 // creating list that will hold all LEDs in it
 CRGB leds[numLeds];
-CRGB background[numLeds];
 
 PulseManager pulseManager(leds, numLeds);
 
@@ -30,7 +29,6 @@ IPAddress subnet(255, 255, 255, 0);   // Subnetzmaske
 
 void staticRgbColor(CRGB rgbColor){
 fill_solid(leds, numLeds, rgbColor);
-fill_solid(background, numLeds, rgbColor);
 
   FastLED.show(); // LEDs aktualisieren
 }
@@ -108,5 +106,5 @@ void setup() {
 
 void loop() {
   server.handleClient(); // handle server requests from any clients
-  pulseManager.updatePulses(ledMapping, background); // Hintergrundfarbe Schwarz
+  pulseManager.updatePulses(ledMapping); // Hintergrundfarbe Schwarz
 }

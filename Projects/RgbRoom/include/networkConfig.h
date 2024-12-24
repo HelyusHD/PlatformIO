@@ -8,4 +8,5 @@
 
     #define CLIENT_01 "192.168.4.2"
     #define CLIENT_02 "192.168.4.3"
+    #define CLIENT_03 "192.168.4.4"
 #endif

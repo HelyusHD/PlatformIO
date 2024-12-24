@@ -23,9 +23,12 @@ private:
     std::vector<Pulse> pulses;  // Liste der aktiven Impulse
     CRGB *leds;                 // LED-Array
     int numLeds;                // Anzahl der LEDs
+    CRGB* buffer;
 
 public:
-    PulseManager(CRGB *ledArray, int totalLeds) : leds(ledArray), numLeds(totalLeds) {}
+    PulseManager(CRGB *ledArray, int totalLeds) : leds(ledArray), numLeds(totalLeds) {
+        buffer = new CRGB[numLeds];
+    }
 
     // Impuls spawnen
     void spawnPulse(CRGB pulseColor, int tickStep, int spawnPosition, int length, bool complementary) {
@@ -35,11 +38,7 @@ public:
     }
 
     // Alle Impulse aktualisieren und LEDs neu rendern
-    void updatePulses(int ledMapping[], CRGB background[]) {
-
-        for (int i = 0; i < numLeds; i++) {
-            leds[i] = background[i];
-        }
+    void updatePulses(int ledMapping[]) {
 
         // Impulse verarbeiten
         for (auto it = pulses.begin(); it != pulses.end(); ) {
@@ -50,14 +49,17 @@ public:
                 int ledIndex = ledMapping[pulse.position + i];
                 if (ledIndex >= 0 && ledIndex < numLeds) {
                     if(pulse.complementary){
-                        leds[ledIndex] = getComplementaryColor(background[ledMapping[i]]);
+                        buffer[ledIndex] = leds[ledIndex];
+                        leds[ledIndex] = getComplementaryColor(leds[ledMapping[i]]);
                     } else {
+                        buffer[ledIndex] = leds[ledIndex];
                         leds[ledIndex] = pulse.pulseColor;
                     }
                 }
             }
 
             // Position des Impulses aktualisieren
+            int prefPos = pulse.position;
             pulse.position += pulse.tickStep;
 
             // Impuls entfernen, wenn er aus dem sichtbaren Bereich heraus ist
@@ -66,10 +68,19 @@ public:
             } else {
                 ++it;
             }
-        }
 
-        // LEDs anzeigen
-        FastLED.show();
+            // undo changes
+            FastLED.show();
+            for (int i = 0; i < pulse.length; i++) {
+                int ledIndex = ledMapping[prefPos + i];
+                if (ledIndex >= 0 && ledIndex < numLeds) {
+                    leds[ledIndex] = buffer[ledIndex];
+                }
+            }
+        }
+    }
+    ~PulseManager() {
+        delete[] buffer; // Speicher freigeben
     }
 };
 
