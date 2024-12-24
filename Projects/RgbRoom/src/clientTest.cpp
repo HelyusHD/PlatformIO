@@ -6,7 +6,7 @@
 #define LED_COUN_01 83
 
 // Create an ESP32 object (network information)
-espClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID);
+EspClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID);
 CRGB leds[LED_COUN_01];
 int ledMapping[LED_COUN_01];
 
@@ -32,5 +32,4 @@ void setup() {
 
 void loop() {
     myESP32.handleClient();
-    myESP32.updateAnimations();
 }

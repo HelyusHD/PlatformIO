@@ -10,7 +10,7 @@
 #include <ESPmDNS.h>  // Für mDNS
 #include "webpage.h"
 
-    class espServer {
+    class EspServer {
     private:
         //esp network
         const std::string networkPassword;
@@ -23,7 +23,7 @@
         WiFiServer server;
 
     public:
-        espServer(std::string password, std::string ssid, std::string dnsName, std::string homePassword, std::string homeSsid)
+        EspServer(std::string password, std::string ssid, std::string dnsName, std::string homePassword, std::string homeSsid)
             : networkPassword(password), networkSSID(ssid), dns(dnsName), homeNetworkPassword(homePassword), homeNetworkSSID(homeSsid), server(80) {}
 
         // Method to display network information

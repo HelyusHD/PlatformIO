@@ -7,17 +7,17 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <FastLED.h>
-#include "lampControl.h"
+#include "myAnimations.h"
 
     // Segment for a strip of LEDs
-    class stripSegment {
+    class StripSegment {
     private:
         CRGB* leds;
         int ledCount;
 
     public:
         // Constructor
-        stripSegment(CRGB* led_array, int start, int end)
+        StripSegment(CRGB* led_array, int start, int end)
             : leds(led_array+start), ledCount(end-start) {}
 
         // Method to display segment properties
@@ -30,30 +30,31 @@
             fill_solid(leds, ledCount, color);
             FastLED.show();
         }
+
+        //void testAnimation(){}
     };
 
-    class lightStrip {
+    class LightStrip {
     private:
         CRGB* leds;
         std::string chipType;
         int ledCount;
-        PulseManager pulseManager;
         int* ledMapping;
 
     public:
-        std::vector<stripSegment> segments; // Container for holding multiple strip segments
+        std::vector<StripSegment> segments; // Container for holding multiple strip segments
 
         // Constructor to initialize the attributes and allocate memory for LEDs
-        lightStrip(CRGB* led_array, int led_count, int* map) : leds(led_array), ledCount(led_count), pulseManager(leds, ledCount), ledMapping(map){}
+        LightStrip(CRGB* led_array, int led_count, int* map) : leds(led_array), ledCount(led_count), ledMapping(map){}
 
-        // Method to display lightStrip properties
+        // Method to display LightStrip properties
         void showStripInfo() {
             std::cout << "Number of LEDs: " << ledCount << std::endl;
         }
 
         // Method to add a segment
         void addSegment(int start, int end) {
-            segments.push_back(stripSegment(leds, start, end));  // Add a new segment to the vector
+            segments.push_back(StripSegment(leds, start, end));  // Add a new segment to the vector
         }
 
         // Method to display segment information
@@ -68,16 +69,10 @@
             fill_solid(leds, ledCount, color);
             FastLED.show();
         }
-        void spawnPulse(){
-            pulseManager.spawnPulse(CRGB::Red, 1, 0, 5, true); // Roter Impuls, startet bei LED 0, bewegt sich um 1 LED pro Tick, Länge 5 LEDs
-        }
-        void updatePulse(){
-            pulseManager.updatePulses(ledMapping);
-        }
     };
 
-    // espClient controller connects to a network and controls lightStrips
-    class espClient {
+    // EspClient controller connects to a network and controls LightStrips
+    class EspClient {
     private:
         const std::string ipAddress;
         const std::string networkPassword;
@@ -85,10 +80,10 @@
         WebServer server;
 
     public:
-        std::vector<lightStrip> strips; // Container for holding multiple strip segments
+        std::vector<LightStrip> strips; // Container for holding multiple strip segments
 
         // Constructor to initialize the attributes
-        espClient(std::string ip, std::string password, std::string ssid)
+        EspClient(std::string ip, std::string password, std::string ssid)
             : ipAddress(ip), networkPassword(password), networkSSID(ssid), server(80) {}
 
         // Method to display network information
@@ -100,20 +95,20 @@
 
         // Method to add a segment
         void addStrip(CRGB* led_array, int led_count, int* map) {
-            strips.push_back(lightStrip(led_array, led_count, map));  // Add a new segment to the vector
+            strips.push_back(LightStrip(led_array, led_count, map));  // Add a new segment to the vector
         }
 
         // Method to display segment information
         void showStripInfo() {
-            for (auto& strips : strips) {
-                strips.showStripInfo(); // Show each segment's information
+            for (auto& strip : strips) {
+                strip.showStripInfo(); // Show each segment's information
             }
         }
 
         // turns all lamps off
         void handleOff(){
-            for (auto& strips : strips) {
-                strips.setColor(CRGB::Black);
+            for (auto& strip : strips) {
+                strip.setColor(CRGB::Black);
             }
         }
 
@@ -125,14 +120,14 @@
             Serial.printf("got new RGB request %i\t%i\t%i\n", r, g, b);
 
             CRGB color = CRGB(r,g,b);
-            for (auto& strips : strips) {
-                strips.setColor(color);
+            for (LightStrip& strip : strips) {
+                strip.setColor(color);
             }
         }
 
-        void handleSendPulse(){
-            for (auto& strips : strips) {
-                strips.spawnPulse();
+        void startTestAnimation(){
+            for (LightStrip& strip : strips) {
+                strip.setColor(CRGB::Black);
             }
         }
 
@@ -159,7 +154,7 @@
 
             server.on("/turnOff", HTTP_GET, [this](){this->handleOff(); });
             server.on("/RgbColor", HTTP_GET, [this](){this->handleRgbColor(); });
-            server.on("/sendPulse", HTTP_GET, [this](){this->handleSendPulse(); });
+            server.on("/sendPulse", HTTP_GET, [this](){this->startTestAnimation(); });
             server.begin();
             std::cout << "Web server started!\n" << std::endl;
         }
@@ -167,12 +162,6 @@
         // handle server requests from any clients
         void handleClient(){
             server.handleClient();
-        }
-
-        void updateAnimations(){
-            for (auto& strips : strips) {
-                strips.updatePulse();
-            }  
         }
     };
 
