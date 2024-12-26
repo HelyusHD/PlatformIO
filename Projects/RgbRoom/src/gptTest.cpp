@@ -33,7 +33,6 @@ void handleClientTaskFunction(void* parameter) {
 void updateAnimationsTaskFunction(void* parameter) {
     while (true) {
         myESP32.updateAnimations();
-        vTaskDelay(1 / portTICK_PERIOD_MS); // Kleine Verzögerung
     }
 }
 
