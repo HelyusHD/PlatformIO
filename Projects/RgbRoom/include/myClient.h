@@ -45,7 +45,7 @@
         const int ledCount;
 
         // Constructor to initialize the attributes and allocate memory for LEDs
-        LightStrip(CRGB* led_array, CRGB* background_array, const int led_count, int* map) : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), animationManager(leds, background, ledMapping, ledCount){
+        LightStrip(CRGB* led_array, CRGB* background_array, const int led_count, int* map) : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), animationManager(leds, background, ledMapping, led_count){
             std::cout << "LightStrip created at address: " << this << std::endl;
         }
 
@@ -161,7 +161,7 @@
         void startTestAnimation(){
             for (LightStrip& strip : strips) {
                 std::cout << "starting test animation" << std::endl;
-                strip.spawnPulse(10, 20, 0, strip.ledCount, CRGB::Red); //spawning default pulse
+                strip.spawnPulse(5, 50, 0, strip.ledCount, CRGB::Red); //spawning default pulse
             }
         }
 
