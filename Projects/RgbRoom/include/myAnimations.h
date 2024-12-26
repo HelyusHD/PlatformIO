@@ -36,12 +36,11 @@ public:
         // Changing color
         double dt = (millis() - spawnTick);
         int pos = std::floor(speed * dt / 1000) + shift;
-        std::cout << "pos: " << pos << std::endl;
         if (pos - length > endPosition){return true;}
         for(int i = pos; i >= pos - length; i--){
             if (i >= 0 && i < endPosition) {
                 leds[map[i]] = color;
-            }else{break;}
+            }
         }
         return false;
     }
