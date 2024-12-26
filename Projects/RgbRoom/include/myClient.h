@@ -30,22 +30,28 @@
             fill_solid(leds, ledCount, color);
             FastLED.show();
         }
-
-        //void testAnimation(){}
     };
 
     class LightStrip {
     private:
         CRGB* leds;
+        CRGB* background;
         std::string chipType;
         int ledCount;
         int* ledMapping;
+        PulseManager pulseManager;
 
     public:
         std::vector<StripSegment> segments; // Container for holding multiple strip segments
 
         // Constructor to initialize the attributes and allocate memory for LEDs
-        LightStrip(CRGB* led_array, int led_count, int* map) : leds(led_array), ledCount(led_count), ledMapping(map){}
+        LightStrip(CRGB* led_array, CRGB* background_array, int led_count, int* map) : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), pulseManager(leds, background, ledMapping, ledCount){
+            std::cout << "LightStrip created at address: " << this << std::endl;
+        }
+
+        ~LightStrip() {
+            std::cout << "LightStrip destroyed at address: " << this << std::endl;
+        }
 
         // Method to display LightStrip properties
         void showStripInfo() {
@@ -67,7 +73,30 @@
         // sets a uniform color
         void setColor(CRGB color){
             fill_solid(leds, ledCount, color);
+            fill_solid(background,ledCount, color);
             FastLED.show();
+        }
+
+        void fillRangeWithColor(int low, int high, CRGB color) {
+            low = max(0, low);
+            high = min(ledCount - 1, high); // Höchstens NUM_LEDS - 1
+
+            for (int i = low; i <= high; ++i) {
+                leds[ledMapping[i]] = color;
+            }
+            FastLED.show();
+        }
+
+        void centeredLoadingBar(int count, CRGB color){
+            fillRangeWithColor(ledCount/2 - count,ledCount/2 + count, color);
+        }
+
+        void spawnPulse(int pulseLength, double lamps_per_sec, int spawnPositon, CRGB pulseColor){
+            pulseManager.spawnPulse(pulseLength, lamps_per_sec, spawnPositon, pulseColor);
+        }
+
+        void updateAnimation(){
+            pulseManager.update();
         }
     };
 
@@ -86,6 +115,10 @@
         EspClient(std::string ip, std::string password, std::string ssid)
             : ipAddress(ip), networkPassword(password), networkSSID(ssid), server(80) {}
 
+        ~EspClient() {
+            std::cout << "EspClient destroyed at address: " << this << std::endl;
+        }
+
         // Method to display network information
         void showNetworkInfo() {
             std::cout << "IP Address: " << ipAddress << std::endl;
@@ -94,8 +127,8 @@
         }
 
         // Method to add a segment
-        void addStrip(CRGB* led_array, int led_count, int* map) {
-            strips.push_back(LightStrip(led_array, led_count, map));  // Add a new segment to the vector
+        void addStrip(CRGB* led_array,CRGB* background_array,  int led_count, int* map) {
+            strips.push_back(LightStrip(led_array, background_array, led_count, map));  // Add a new segment to the vector
         }
 
         // Method to display segment information
@@ -127,7 +160,8 @@
 
         void startTestAnimation(){
             for (LightStrip& strip : strips) {
-                strip.setColor(CRGB::Black);
+                std::cout << "starting test animation" << std::endl;
+                strip.spawnPulse(10, 20, 0, CRGB::Red); //spawning default pulse
             }
         }
 
@@ -144,19 +178,30 @@
             std::cout << "Connecting to WLAN " << ipAddress << std::endl;
             WiFi.config(local_IP, gateway, subnet);
             WiFi.begin(networkSSID.c_str(), networkPassword.c_str());
-
+            int i = 0;
             while (WiFi.status() != WL_CONNECTED) {
-                delay(1000);
+                if (strips.size()>0){
+                    i++;
+                    strips[0].centeredLoadingBar(i, CRGB::Red);
+                }
                 std::cout << ".";
                 std::cout.flush();
+                delay(200);
             }
             std::cout << "\nWLAN connected!" << std::endl;
+            strips[0].setColor(CRGB::Black);
 
             server.on("/turnOff", HTTP_GET, [this](){this->handleOff(); });
             server.on("/RgbColor", HTTP_GET, [this](){this->handleRgbColor(); });
             server.on("/sendPulse", HTTP_GET, [this](){this->startTestAnimation(); });
             server.begin();
             std::cout << "Web server started!\n" << std::endl;
+        }
+
+        void updateAnimations(){
+            for(LightStrip& strip : strips){
+                strip.updateAnimation();
+            }
         }
 
         // handle server requests from any clients

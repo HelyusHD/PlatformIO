@@ -8,6 +8,7 @@
 // Create an ESP32 object (network information)
 EspClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID);
 CRGB leds[LED_COUN_01];
+CRGB background[LED_COUN_01];
 int ledMapping[LED_COUN_01];
 
 void setup() {
@@ -16,10 +17,10 @@ void setup() {
     for(int i=0;i<LED_COUN_01;i++){
         ledMapping[i] = i;
     }
-    myESP32.addStrip(leds, 83, ledMapping);
-    //myESP32.strips[0].addSegment(0, 56);
+    myESP32.addStrip(leds, background, LED_COUN_01, ledMapping);
+    myESP32.strips[0].addSegment(0, 56);
     myESP32.strips[0].addSegment(57, 82);
-    myESP32.strips[0].segments[0].setColor(CRGB::Red);
+    //myESP32.strips[0].segments[0].setColor(CRGB::Red);
 
     
     // Display network information from ESP32
@@ -32,4 +33,5 @@ void setup() {
 
 void loop() {
     myESP32.handleClient();
+    myESP32.updateAnimations();
 }
