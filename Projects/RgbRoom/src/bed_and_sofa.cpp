@@ -3,21 +3,21 @@
 #include "networkConfig.h"
 #include <FastLED.h>
 
-#define LED_COUN_01 83
+const int led_count = 83;
 
 // Create an ESP32 object (network information)
 EspClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID);
-CRGB leds[LED_COUN_01];
-CRGB background[LED_COUN_01];
-int ledMapping[LED_COUN_01];
+CRGB leds[led_count];
+CRGB background[led_count];
+int ledMapping[led_count];
 
 void setup() {
     Serial.begin(115200); // Start the serial communication at 115200 baud rate
-    FastLED.addLeds<WS2811, 5>(leds, LED_COUN_01);
-    for(int i=0;i<LED_COUN_01;i++){
+    FastLED.addLeds<WS2811, 5>(leds, led_count);
+    for(int i=0;i<led_count;i++){
         ledMapping[i] = i;
     }
-    myESP32.addStrip(leds, background, LED_COUN_01, ledMapping);
+    myESP32.addStrip(leds, background, led_count, ledMapping);
     myESP32.strips[0].addSegment(0, 56);
     myESP32.strips[0].addSegment(57, 82);
     //myESP32.strips[0].segments[0].setColor(CRGB::Red);

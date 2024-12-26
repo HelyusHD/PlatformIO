@@ -37,15 +37,15 @@
         CRGB* leds;
         CRGB* background;
         std::string chipType;
-        int ledCount;
         int* ledMapping;
-        PulseManager pulseManager;
+        AnimationManager animationManager;
 
     public:
         std::vector<StripSegment> segments; // Container for holding multiple strip segments
+        const int ledCount;
 
         // Constructor to initialize the attributes and allocate memory for LEDs
-        LightStrip(CRGB* led_array, CRGB* background_array, int led_count, int* map) : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), pulseManager(leds, background, ledMapping, ledCount){
+        LightStrip(CRGB* led_array, CRGB* background_array, const int led_count, int* map) : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), animationManager(leds, background, ledMapping, ledCount){
             std::cout << "LightStrip created at address: " << this << std::endl;
         }
 
@@ -91,12 +91,12 @@
             fillRangeWithColor(ledCount/2 - count,ledCount/2 + count, color);
         }
 
-        void spawnPulse(int pulseLength, double lamps_per_sec, int spawnPositon, CRGB pulseColor){
-            pulseManager.spawnPulse(pulseLength, lamps_per_sec, spawnPositon, pulseColor);
+        void spawnPulse(int pulseLength, double lamps_per_sec, int spawnPositon, int endPosition, CRGB pulseColor){
+            animationManager.spawnPulse(pulseLength, lamps_per_sec, spawnPositon, endPosition, pulseColor);
         }
 
         void updateAnimation(){
-            pulseManager.update();
+            animationManager.update();
         }
     };
 
@@ -127,7 +127,7 @@
         }
 
         // Method to add a segment
-        void addStrip(CRGB* led_array,CRGB* background_array,  int led_count, int* map) {
+        void addStrip(CRGB* led_array,CRGB* background_array, const int led_count, int* map) {
             strips.push_back(LightStrip(led_array, background_array, led_count, map));  // Add a new segment to the vector
         }
 
@@ -161,7 +161,7 @@
         void startTestAnimation(){
             for (LightStrip& strip : strips) {
                 std::cout << "starting test animation" << std::endl;
-                strip.spawnPulse(10, 20, 0, CRGB::Red); //spawning default pulse
+                strip.spawnPulse(10, 20, 0, strip.ledCount, CRGB::Red); //spawning default pulse
             }
         }
 
