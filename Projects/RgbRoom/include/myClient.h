@@ -13,12 +13,13 @@
     class StripSegment {
     private:
         CRGB* leds;
+        CRGB* background;
         int ledCount;
 
     public:
         // Constructor
-        StripSegment(CRGB* led_array, int start, int end)
-            : leds(led_array+start), ledCount(end-start) {}
+        StripSegment(CRGB* led_array, CRGB* background_array, int start, int end)
+            : leds(led_array+start),background(background_array+start) , ledCount(end-start) {}
 
         // Method to display segment properties
         void showSegmentInfo() {
@@ -28,6 +29,7 @@
         // sets a uniform color
         void setColor(CRGB color){
             fill_solid(leds, ledCount, color);
+            fill_solid(background, ledCount, color);
             FastLED.show();
         }
     };
@@ -39,14 +41,21 @@
         std::string chipType;
         int* ledMapping;
         AnimationManager animationManager;
+        int repeaterCount;
 
     public:
         std::vector<StripSegment> segments; // Container for holding multiple strip segments
         const int ledCount;
 
         // Constructor to initialize the attributes and allocate memory for LEDs
-        LightStrip(CRGB* led_array, CRGB* background_array, const int led_count, int* map) : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), animationManager(leds, background, ledMapping, led_count){
+        LightStrip(CRGB* led_array, CRGB* background_array, const int led_count, int* map, int repeater_count)
+            : leds(led_array), background(background_array), ledCount(led_count), ledMapping(map), animationManager(leds, background, ledMapping, led_count), repeaterCount(repeater_count){
             std::cout << "LightStrip created at address: " << this << std::endl;
+            // turning of repeaters
+            for(int i=ledCount+repeaterCount-1; i>=ledCount; i--){
+                leds[map[i]] = CRGB::Black;
+                background[map[i]] = CRGB::Black;
+            }
         }
 
         ~LightStrip() {
@@ -60,7 +69,7 @@
 
         // Method to add a segment
         void addSegment(int start, int end) {
-            segments.push_back(StripSegment(leds, start, end));  // Add a new segment to the vector
+            segments.push_back(StripSegment(leds, background, start, end));  // Add a new segment to the vector
         }
 
         // Method to display segment information
@@ -72,8 +81,10 @@
 
         // sets a uniform color
         void setColor(CRGB color){
-            fill_solid(leds, ledCount, color);
-            fill_solid(background,ledCount, color);
+            for(int i=0; i<ledCount; i++){
+                leds[ledMapping[i]] = color;
+                background[ledMapping[i]] = color;
+            }
             FastLED.show();
         }
 
@@ -127,8 +138,8 @@
         }
 
         // Method to add a segment
-        void addStrip(CRGB* led_array,CRGB* background_array, const int led_count, int* map) {
-            strips.push_back(LightStrip(led_array, background_array, led_count, map));  // Add a new segment to the vector
+        void addStrip(CRGB* led_array,CRGB* background_array, const int led_count, int* map, int repeater_count) {
+            strips.push_back(LightStrip(led_array, background_array, led_count, map, repeater_count));  // Add a new segment to the vector
         }
 
         // Method to display segment information
