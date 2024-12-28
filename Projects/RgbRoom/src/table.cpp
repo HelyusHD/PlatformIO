@@ -27,7 +27,7 @@ void setup() {
         ledMapping[i] = i;
         }
     }
-    myESP32.addStrip(leds, background, led_count, ledMapping);
+    myESP32.addStrip(leds, background, led_count, ledMapping, 0);
  
     // Display network information from ESP32
     myESP32.showNetworkInfo();
