@@ -5,13 +5,20 @@
 #ifndef MY_ANIMATIONS
 #define MY_ANIMATIONS
 
+class PulseSource{
+private:
+    int frequenzy;
+public:
+    PulseSource(){}
+};
+
 // animates a pulse
 class Pulse {
 private:
     int ledCount;
     int length; // length of impulse
     double speed; // speed in lamps/s
-    int shift; // position of pulse
+    int spawnPosition; // position of pulse
     int endPosition;
     CRGB color;
     unsigned long spawnTick;
@@ -20,8 +27,8 @@ public:
     bool done;
 
     // Constructor
-    Pulse(int pulseLength, double lamps_per_sec, int spawnPosition, int end_position, CRGB pulseColor)
-        : length(pulseLength), speed(lamps_per_sec), shift(spawnPosition), endPosition(end_position), color(pulseColor), done(false), spawnTick(millis()) {
+    Pulse(int pulseLength, double lamps_per_sec, int spawn_position, int end_position, CRGB pulseColor)
+        : length(pulseLength), speed(lamps_per_sec), spawnPosition(spawn_position), endPosition(end_position), color(pulseColor), done(false), spawnTick(millis()) {
         std::cout << "### creating new Pulse ### at address: " << this << std::endl;
     }
 
@@ -35,8 +42,8 @@ public:
 
         // Changing color
         double dt = (millis() - spawnTick);
-        int pos = std::floor(speed * dt / 1000) + shift;
-        if (pos - length > endPosition){return true;}
+        int pos = std::floor(speed * dt / 1000) + spawnPosition;
+        if (pos - length > endPosition || pos < 0){return true;}
         for(int i = pos; i >= pos - length; i--){
             if (i >= 0 && i < endPosition) {
                 leds[map[i]] = color;
@@ -64,8 +71,8 @@ public:
         std::cout << "AnimationManager destroyed at address: " << this << std::endl;
     }
 
-    void spawnPulse(int pulseLength, double lamps_per_sec, int spawnPosition, int endPosition, CRGB pulseColor) {
-        pulses.emplace_back(pulseLength, lamps_per_sec, spawnPosition, endPosition, pulseColor);
+    void spawnPulse(int pulseLength, double lamps_per_sec, int spawn_position, int endPosition, CRGB pulseColor) {
+        pulses.emplace_back(pulseLength, lamps_per_sec, spawn_position, endPosition, pulseColor);
     }
 
     void update() {
