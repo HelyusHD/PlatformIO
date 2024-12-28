@@ -19,6 +19,13 @@
     colorDisplay.style.backgroundColor = selectedColor;
     fetch(`/setRgbColor?color=${selectedColor.substring(1)}`); // Farbe an den Server senden
   }
+  document.addEventListener('DOMContentLoaded', () => {
+    const lastColor = "$LASTCOLOR"; // This will be replaced by the server
+    const colorPicker = document.getElementById('colorPicker');
+    const colorDisplay = document.getElementById('colorDisplay');
+    colorPicker.value = lastColor;
+    colorDisplay.style.backgroundColor = lastColor;
+  });
   </script>
   </head>
   <body>
