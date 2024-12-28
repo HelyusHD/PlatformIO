@@ -40,10 +40,10 @@
         CRGB* background;
         std::string chipType;
         int* ledMapping;
-        AnimationManager animationManager;
         int repeaterCount;
 
     public:
+        AnimationManager animationManager;
         std::vector<StripSegment> segments; // Container for holding multiple strip segments
         const int ledCount;
 
