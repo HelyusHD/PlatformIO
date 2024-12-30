@@ -19,7 +19,7 @@ int ledMapping[led_count];
 void setup() {
 	Serial.begin(115200); // Start the serial communication at 115200 baud rate
 	FastLED.addLeds<WS2815, LED_PIN_R, GRB>(leds, 0, NUM_LEDS_R); // Erster Strang
-	FastLED.addLeds<WS2815, LED_PIN_FL, GRB>(leds, NUM_LEDS_R, NUM_LEDS_FL); // Zweiter Strang
+  FastLED.addLeds<WS2815, LED_PIN_FL, GRB>(leds, NUM_LEDS_R, NUM_LEDS_FL); // Zweiter Strang
 	for(int i=0;i<led_count;i++){
 		if(i<NUM_LEDS_R){
 		ledMapping[i] = NUM_LEDS_R - i - 1;

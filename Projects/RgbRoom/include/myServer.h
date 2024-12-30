@@ -10,6 +10,7 @@
 #include <ESPmDNS.h>  // Für mDNS
 #include "webpage.h"
 #include <esp_wifi.h>
+#include <WebServer.h>
 
 	class EspServer {
 	private:
@@ -84,13 +85,21 @@
 			http.end(); // Verbindung schließen
 		}
 
+		// Hexadezimal in Dezimal (R, G, B) umwandeln
+		void StringToRgb(String colorHex, uint8_t* rgb){
+			rgb[0] = strtol(colorHex.substring(0, 2).c_str(), nullptr, 16);
+			rgb[1] = strtol(colorHex.substring(2, 4).c_str(), nullptr, 16);
+			rgb[2] = strtol(colorHex.substring(4, 6).c_str(), nullptr, 16);
+		}
+
 		void setRgbColor(String colorHex, String ip){
 			Serial.println("Farbwert erhalten: " + colorHex+"sending to"+ip);
+			uint8_t rgb[3];
+			StringToRgb(colorHex, rgb);
+			uint8_t r = rgb[0];
+			uint8_t g = rgb[1];
+			uint8_t b = rgb[2];
 
-			// Hexadezimal in Dezimal (R, G, B) umwandeln
-			uint8_t r = strtol(colorHex.substring(0, 2).c_str(), nullptr, 16);
-			uint8_t g = strtol(colorHex.substring(2, 4).c_str(), nullptr, 16);
-			uint8_t b = strtol(colorHex.substring(4, 6).c_str(), nullptr, 16);
 			Serial.printf("RGB-Werte: R=%d, G=%d, B=%d\n", r, g, b);
 			const String request = "/RgbColor?r=" + String(r) + "&g=" + String(g) + "&b=" + String(b);
 			sendHtml(request, ip);
@@ -102,12 +111,6 @@
 		void handleClient(){
 			// Webserver nur im Heimnetzwerk bedienen
 			if (WiFi.status() == WL_CONNECTED) {
-
-				int numDevices = WiFi.softAPgetStationNum();
-				if(numDevices != connectedClientsCount){
-					std::cout << numDevices << " != " << connectedClientsCount << std::endl;
-					remeberNewDevice();
-				}
 
 				// Client abfragen
 				WiFiClient client = server.available();
@@ -137,70 +140,33 @@
 						sendHtml("/sendPulse",CLIENT_01);
 						sendHtml("/sendPulse",CLIENT_02);
 					}
-					// update last color
-					String html = webpage;
-					html.replace("$LASTCOLOR", "#" + String(lastColor)); // Inject lastColor into the webpage
+					
+					// sending first connection informations to client
+					if (request.indexOf("/firstConnection") != -1){
+						uint8_t rgb[3];
+						StringToRgb(lastColor, rgb);
+						uint8_t r = rgb[0]; uint8_t g = rgb[1]; uint8_t b = rgb[2];
+						String jsonResponse = "	{\"r\":\"" + String(r) + "\", \"g\":\"" + String(g) + "\", \"b\":\"" + String(b) + "\"}";
+						client.println("HTTP/1.1 200 OK");
+						client.println("Content-type: application/json");
+						client.println();
+						client.println(jsonResponse);
+						Serial.println("send lastColor: " + jsonResponse);
+						client.stop();
+					} else {
+						// update last color
+						String html = webpage;
+						html.replace("$LASTCOLOR", "#" + String(lastColor)); // Inject lastColor into the webpage
 
 
-					// HTML-Antwort senden
-					client.println("HTTP/1.1 200 OK");
-					client.println("Content-type:text/html");
-					client.println(html);
-					client.stop();
-					Serial.println("Client getrennt.");
-				}
-			}
-		}
-		void remeberNewDevice() {
-			// Get detailed station info
-			wifi_sta_list_t stationList;
-			tcpip_adapter_sta_list_t adapterStationList;
-
-			esp_wifi_ap_get_sta_list(&stationList); // Get station list
-			tcpip_adapter_get_sta_list(&stationList, &adapterStationList); // Map to adapter station list
-
-			
-			// Update the count of connected clients
-			connectedClientsCount = 0;
-
-			// Loop through each connected station
-			for (int i = 0; i < adapterStationList.num; i++) {
-				tcpip_adapter_sta_info_t station = adapterStationList.sta[i];
-				IPAddress deviceIP = IPAddress((uint8_t*)&station.ip.addr);
-
-				if (deviceIP.toString() == "0.0.0.0") {
-					Serial.printf("Device %d has no valid IP yet. Skipping.\n", i + 1);
-					continue;
-				}
-
-				connectedClientsCount++;
-				
-				// comparing new IP to known IPs
-				bool isNewDevice = true;
-				for (IPAddress ip : connectedIpAdresses){
-					if (ip == deviceIP){
-						isNewDevice = false;
-						break;
+						// HTML-Antwort senden
+						client.println("HTTP/1.1 200 OK");
+						client.println("Content-type:text/html");
+						client.println(html);
+						client.stop();
+						Serial.println("Client getrennt.");
 					}
 				}
-
-				if(isNewDevice){
-					Serial.printf("New device %d: MAC: %02X:%02X:%02X:%02X:%02X:%02X, IP: %s\n",
-					i + 1,
-					station.mac[0], station.mac[1], station.mac[2],
-					station.mac[3], station.mac[4], station.mac[5],
-					deviceIP.toString());
-					setRgbColor(lastColor, deviceIP.toString());
-				}
-			}
-			// Clear the vector to reset the list of known IP addresses
-			connectedIpAdresses.clear();
-
-			// Save all currently connected device IPs into the vector
-			for (int i = 0; i < adapterStationList.num; i++) {
-				tcpip_adapter_sta_info_t station = adapterStationList.sta[i];
-				IPAddress deviceIP = IPAddress((uint8_t*)&station.ip.addr);
-				connectedIpAdresses.push_back(deviceIP); // Add the device IP to the vector
 			}
 		}
 	};

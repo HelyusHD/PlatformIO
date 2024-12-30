@@ -8,6 +8,8 @@
 #include <WebServer.h>
 #include <FastLED.h>
 #include "myAnimations.h"
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 	// Segment for a strip of LEDs
 	class StripSegment {
@@ -176,8 +178,43 @@
 			}
 		}
 
+		// loads setup information on first connection to server
+		void firstConnectionSetup(){
+			// updating color on first connection
+			HTTPClient http;
+			String url = String("http://192.168.4.1") + "/firstConnection";
+    		http.begin(url);
+			int httpResponseCode = http.GET();
+			if (httpResponseCode > 0) {
+				String response = http.getString();
+				// Parse JSON
+				ArduinoJson::JsonDocument jsonDoc;
+				DeserializationError error = deserializeJson(jsonDoc, response);
+				if (!error) {
+					// Extract values
+					uint8_t r = jsonDoc["r"];
+					uint8_t g = jsonDoc["g"];
+					uint8_t b = jsonDoc["b"];
+
+					Serial.printf("RGB: R=%d, G=%d, B=%d\n", r, g, b);
+					CRGB color ={r,g,b};
+					for (LightStrip& strip : strips) {
+						strip.setColor(color);
+					}
+
+				} else {
+					Serial.print("couldnt parse JSON: ");
+					Serial.println(error.c_str());
+				}
+
+			} else {
+			Serial.println("couldnt load first connect config");
+			}
+		}
+
 		// connects to local esp wifi network
 		void networkingSetup() {
+			// network config
 			IPAddress local_IP;
 			IPAddress gateway(192, 168, 4, 1);
 			IPAddress subnet(255, 255, 255, 0); 
@@ -202,11 +239,14 @@
 			std::cout << "\nWLAN connected!" << std::endl;
 			strips[0].setColor(CRGB::Black);
 
+			// http handeling
 			server.on("/turnOff", HTTP_GET, [this](){this->handleOff(); });
 			server.on("/RgbColor", HTTP_GET, [this](){this->handleRgbColor(); });
 			server.on("/sendPulse", HTTP_GET, [this](){this->startTestAnimation(); });
 			server.begin();
 			std::cout << "Web server started!\n" << std::endl;
+
+			firstConnectionSetup();
 		}
 
 		void updateAnimations(){
