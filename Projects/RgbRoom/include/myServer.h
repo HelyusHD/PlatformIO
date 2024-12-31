@@ -8,9 +8,12 @@
 #include "networkConfig.h"
 #include <HTTPClient.h>
 #include <ESPmDNS.h>  // Für mDNS
-#include "webpage.h"
 #include <esp_wifi.h>
 #include <WebServer.h>
+
+#include "html_begin.pp" // header from this repo
+#include "webpage.html"    // your HTML file
+#include "html_end.pp"   // header from this repo
 
 	class EspServer {
 	private:
@@ -154,14 +157,12 @@
 						Serial.println("send lastColor: " + jsonResponse);
 						client.stop();
 					} else {
+						
+						String html = html_page;
 						// update last color
-						String html = webpage;
-						html.replace("$LASTCOLOR", "#" + String(lastColor)); // Inject lastColor into the webpage
-
+						std::cout << html_page << std::endl;
 
 						// HTML-Antwort senden
-						client.println("HTTP/1.1 200 OK");
-						client.println("Content-type:text/html");
 						client.println(html);
 						client.stop();
 						Serial.println("Client getrennt.");

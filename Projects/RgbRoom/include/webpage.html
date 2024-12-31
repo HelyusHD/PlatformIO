@@ -1,0 +1,50 @@
+<!--
+    HTML_HELPER 
+    const char html_page[] = TO_STRING( 
+<!-- -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 Webserver</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: black; color: white; }
+        .color-display {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+    </style>
+    <script>
+        function updateColorDisplay() {
+            const colorPicker = document.getElementById('colorPicker');
+            const colorDisplay = document.querySelector('.color-display');
+            const selectedColor = colorPicker.value;
+            colorDisplay.style.backgroundColor = selectedColor;
+            fetch(`/setRgbColor?color=${selectedColor.substring(1)}`);
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const lastColor = "$LASTCOLOR";
+            const colorPicker = document.getElementById('colorPicker');
+            const colorDisplay = document.querySelector('.color-display');
+            colorPicker.value = lastColor;
+            colorDisplay.style.backgroundColor = lastColor;
+        });
+    </script>
+</head>
+<body>
+    <h1>RGB Lamp Control</h1>
+    <div class="color-display">&nbsp;</div>
+    <input type="color" id="colorPicker" oninput="updateColorDisplay()">
+    <p>
+        <a href="/turnOff"><button>Turn Off</button></a>
+        <a href="/sendPulse"><button>send pulse</button></a>
+    </p>
+</body>
+</html>
+
+
+
+<!-- ); // end of TO_STRING <!-- -->  
