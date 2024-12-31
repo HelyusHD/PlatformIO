@@ -230,7 +230,7 @@
 			int i = 0;
 			while (WiFi.status() != WL_CONNECTED) {
 				if (strips.size()>0){
-					i++;
+					i+= strips[0].ledCount / 50;
 					strips[0].centeredLoadingBar(i, CRGB::Red);
 				}
 				std::cout << ".";
@@ -238,6 +238,8 @@
 				delay(200);
 			}
 			std::cout << "\nWLAN connected!" << std::endl;
+			strips[0].setColor(CRGB::Green);
+			delay(200);
 			strips[0].setColor(CRGB::Black);
 
 			// http handeling
