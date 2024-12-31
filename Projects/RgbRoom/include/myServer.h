@@ -139,8 +139,8 @@
 						int id = request.substring(idIndex, idIndex + 1).toInt();
 
 
-						if (id==1){setRgbColor(colorHex, CLIENT_01); lastColor[0] = colorHex;}
-						if (id==2){setRgbColor(colorHex, CLIENT_02); lastColor[1] = colorHex;}
+						if (id==1){setRgbColor(colorHex, CLIENT_01); lastColor[0] = colorHex.c_str(); std::cout << "01: " << lastColor[0] << std::endl;}
+						if (id==2){setRgbColor(colorHex, CLIENT_02); lastColor[1] = colorHex.c_str(); std::cout << "02: " << lastColor[1] << std::endl;}
 					} else if (request.indexOf("/sendPulse") != -1){
 						sendHtml("/sendPulse",CLIENT_01);
 						sendHtml("/sendPulse",CLIENT_02);
@@ -159,13 +159,14 @@
 						client.println("Content-type: application/json");
 						client.println();
 						client.println(jsonResponse);
-						Serial.println("send lastColor: " + jsonResponse);
 						client.stop();
 					} else {
 						
 						String html = html_page;
-						// update last color
-						std::cout << html_page << std::endl;
+						// Inject lastColor into the webpage
+						html.replace("$LASTCOLOR_01", "#" + String(lastColor[0]));
+						html.replace("$LASTCOLOR_02", "#" + String(lastColor[1]));
+
 
 						// HTML-Antwort senden
 						client.println(html);
