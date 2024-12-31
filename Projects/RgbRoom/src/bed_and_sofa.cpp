@@ -7,7 +7,7 @@ const int led_count = 83;
 const int repeater_count = 1;
 
 // Create an EspClient object
-EspClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID);
+EspClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID, "2");
 CRGB leds[led_count+repeater_count];
 CRGB background[led_count+repeater_count];
 int ledMapping[led_count+repeater_count];

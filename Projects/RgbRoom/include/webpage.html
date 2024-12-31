@@ -18,32 +18,49 @@
         button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
     </style>
     <script>
-        function updateColorDisplay() {
-            const colorPicker = document.getElementById('colorPicker');
-            const colorDisplay = document.querySelector('.color-display');
+        function updateColorDisplay(pickerId, displayId, clientId) {
+            const colorPicker = document.getElementById(pickerId);
+            const colorDisplay = document.getElementById(displayId);
             const selectedColor = colorPicker.value;
             colorDisplay.style.backgroundColor = selectedColor;
-            fetch(`/setRgbColor?color=${selectedColor.substring(1)}`);
+            fetch(`/setRgbColor?color=${selectedColor.substring(1)}&id=${clientId}`);
         }
+
         document.addEventListener('DOMContentLoaded', () => {
-            const lastColor = "$LASTCOLOR";
-            const colorPicker = document.getElementById('colorPicker');
-            const colorDisplay = document.querySelector('.color-display');
-            colorPicker.value = lastColor;
-            colorDisplay.style.backgroundColor = lastColor;
+            const lastColor_01 = "#ff0000"; // Example default color for picker 1
+            const lastColor_02 = "#00ff00"; // Example default color for picker 2
+
+            const colorPicker_01 = document.getElementById('colorPicker_01');
+            const colorPicker_02 = document.getElementById('colorPicker_02');
+            const colorDisplay_01 = document.getElementById('colorDisplay_01');
+            const colorDisplay_02 = document.getElementById('colorDisplay_02');
+
+            // Initialize color pickers and displays
+            colorPicker_01.value = lastColor_01;
+            colorPicker_02.value = lastColor_02;
+            colorDisplay_01.style.backgroundColor = lastColor_01;
+            colorDisplay_02.style.backgroundColor = lastColor_02;
         });
     </script>
 </head>
 <body>
     <h1>RGB Lamp Control</h1>
-    <div class="color-display">&nbsp;</div>
-    <input type="color" id="colorPicker" oninput="updateColorDisplay()">
+    
+    <!-- Display and Picker for Client 01 -->
+    <div id="colorDisplay_01" class="color-display">&nbsp;</div>
+    <input type="color" id="colorPicker_01" oninput="updateColorDisplay('colorPicker_01', 'colorDisplay_01', 1)">
+
+    <!-- Display and Picker for Client 02 -->
+    <div id="colorDisplay_02" class="color-display">&nbsp;</div>
+    <input type="color" id="colorPicker_02" oninput="updateColorDisplay('colorPicker_02', 'colorDisplay_02', 2)">
+
     <p>
         <a href="/turnOff"><button>Turn Off</button></a>
-        <a href="/sendPulse"><button>send pulse</button></a>
+        <a href="/sendPulse"><button>Send Pulse</button></a>
     </p>
 </body>
 </html>
+
 
 
 

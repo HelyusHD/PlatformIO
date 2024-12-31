@@ -11,7 +11,7 @@ const int led_count = 432;
 #define NUM_LEDS_R 108
 
 // Create an ESP32 object (network information)
-EspClient espClient(CLIENT_01, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID);
+EspClient espClient(CLIENT_01, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID, "1");
 CRGB leds[led_count];
 CRGB background[led_count];
 int ledMapping[led_count];
@@ -28,8 +28,8 @@ void setup() {
 		}
 	}
 	espClient.addStrip(leds, background, led_count, ledMapping, 0);
-	//espClient.strips[0].animationManager.newPulseSource(1, 100.0, 0, 215, CRGB::Green, 200);
-	//espClient.strips[0].animationManager.newPulseSource(1, 100.0, 431, 215, CRGB::Blue, 200);
+	//espClient.strips[0].animationManager.newPulseSource(10, 20.0, 0, 316, CRGB::Green, 1000);
+	//espClient.strips[0].animationManager.newPulseSource(10, 20.0, 431, 116, CRGB::Blue, 1000);
 
 	// Display network information from ESP32
 	espClient.showNetworkInfo();

@@ -27,7 +27,7 @@
 
 		WiFiServer server;
 
-		String lastColor = "000000";
+		String lastColor[2] = {"000000","000000"};
 		std::vector<IPAddress>  connectedIpAdresses;
 		int connectedClientsCount = 0;
 
@@ -130,15 +130,17 @@
 						sendHtml("/turnOff", CLIENT_01);
 						sendHtml("/turnOff", CLIENT_02);
 
-					} else if (request.indexOf("/setRgbColor?color=") != -1) {
+					} else if (request.indexOf("/setRgbColor") != -1) {
 						// RGB-Farbe aus der Anfrage extrahieren
 						int colorIndex = request.indexOf("color=") + 6;
 						String colorHex = request.substring(colorIndex, colorIndex + 6);
 
-						lastColor = colorHex;
+						int idIndex = request.indexOf("id=") + 3;
+						int id = request.substring(idIndex, idIndex + 1).toInt();
 
-						setRgbColor(colorHex, CLIENT_01);
-						setRgbColor(colorHex, CLIENT_02);
+
+						if (id==1){setRgbColor(colorHex, CLIENT_01); lastColor[0] = colorHex;}
+						if (id==2){setRgbColor(colorHex, CLIENT_02); lastColor[1] = colorHex;}
 					} else if (request.indexOf("/sendPulse") != -1){
 						sendHtml("/sendPulse",CLIENT_01);
 						sendHtml("/sendPulse",CLIENT_02);
@@ -146,8 +148,11 @@
 					
 					// sending first connection informations to client
 					if (request.indexOf("/firstConnection") != -1){
+						int idIndex = request.indexOf("id=") + 3;
+						int id = request.substring(idIndex, idIndex + 1).toInt();
 						uint8_t rgb[3];
-						StringToRgb(lastColor, rgb);
+
+						StringToRgb(lastColor[id-1], rgb);
 						uint8_t r = rgb[0]; uint8_t g = rgb[1]; uint8_t b = rgb[2];
 						String jsonResponse = "	{\"r\":\"" + String(r) + "\", \"g\":\"" + String(g) + "\", \"b\":\"" + String(b) + "\"}";
 						client.println("HTTP/1.1 200 OK");

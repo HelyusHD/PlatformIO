@@ -120,13 +120,14 @@
 		const std::string networkPassword;
 		const std::string networkSSID;
 		WebServer server;
+		const std::string id;
 
 	public:
 		std::vector<LightStrip> strips; // Container for holding multiple strip segments
 
 		// Constructor to initialize the attributes
-		EspClient(std::string ip, std::string password, std::string ssid)
-			: ipAddress(ip), networkPassword(password), networkSSID(ssid), server(80) {}
+		EspClient(std::string ip, std::string password, std::string ssid, std::string esp_id)
+			: ipAddress(ip), networkPassword(password), networkSSID(ssid), server(80), id(esp_id) {}
 
 		~EspClient() {
 			std::cout << "EspClient destroyed at address: " << this << std::endl;
@@ -182,7 +183,7 @@
 		void firstConnectionSetup(){
 			// updating color on first connection
 			HTTPClient http;
-			String url = String("http://192.168.4.1") + "/firstConnection";
+			String url = String("http://192.168.4.1") + "/firstConnection" + "?id=" + id.c_str();
     		http.begin(url);
 			int httpResponseCode = http.GET();
 			if (httpResponseCode > 0) {
