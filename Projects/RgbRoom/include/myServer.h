@@ -28,8 +28,8 @@
 		WiFiServer server;
 
 		String lastColor[2] = {"000000","000000"};
-		std::vector<IPAddress>  connectedIpAdresses;
-		int connectedClientsCount = 0;
+		String networkAdress = "192.168.4.";
+		std::vector<int> connectedIds;
 
 	public:
 		EspServer(std::string password, std::string ssid, std::string dnsName, std::string homePassword, std::string homeSsid)
@@ -69,10 +69,10 @@
 			std::cout << "Web server started!\n" << std::endl;
 		}
 
-		void sendHtml(String request, String ip){
-			Serial.println("trying to send request to "+ip);
+		void sendHtml(String request, String id){
 			HTTPClient http;
-			String serverPath = "http://" + ip + request;
+			String serverPath = "http://" + networkAdress + id + request;
+			Serial.println("trying to send request "+serverPath);
 
 			http.begin(serverPath); // Anfrage an Client01 senden
 			int httpResponseCode = http.GET(); // GET-Anfrage senden
@@ -83,6 +83,7 @@
 			} else {
 				Serial.print("Fehler bei der Anfrage: ");
 				Serial.println(httpResponseCode);
+				connectedIds.erase(std::remove(connectedIds.begin(), connectedIds.end(), id.toInt()-2), connectedIds.end());
 			}
 
 			http.end(); // Verbindung schließen
@@ -95,8 +96,8 @@
 			rgb[2] = strtol(colorHex.substring(4, 6).c_str(), nullptr, 16);
 		}
 
-		void setRgbColor(String colorHex, String ip){
-			Serial.println("Farbwert erhalten: " + colorHex+"sending to"+ip);
+		void setRgbColor(String colorHex, String id){
+			Serial.println("Farbwert erhalten: " + colorHex+"sending to "+id);
 			uint8_t rgb[3];
 			StringToRgb(colorHex, rgb);
 			uint8_t r = rgb[0];
@@ -105,7 +106,7 @@
 
 			Serial.printf("RGB-Werte: R=%d, G=%d, B=%d\n", r, g, b);
 			const String request = "/RgbColor?r=" + String(r) + "&g=" + String(g) + "&b=" + String(b);
-			sendHtml(request, ip);
+			sendHtml(request, id);
 		}
 
 		void handleSetRgbColor(){}
@@ -127,8 +128,8 @@
 
 					// Anfragen verarbeiten
 					if (request.indexOf("/turnOff") != -1) {
-						sendHtml("/turnOff", CLIENT_01);
-						sendHtml("/turnOff", CLIENT_02);
+						sendHtml("/turnOff", String(clients[0]));
+						sendHtml("/turnOff", String(clients[1]));
 
 					} else if (request.indexOf("/setRgbColor") != -1) {
 						// RGB-Farbe aus der Anfrage extrahieren
@@ -137,22 +138,40 @@
 
 						int idIndex = request.indexOf("id=") + 3;
 						int id = request.substring(idIndex, idIndex + 1).toInt();
+						for (int client : clients){
+							if (id + 2==client){
+								setRgbColor(colorHex, String(client));
+								lastColor[client] = colorHex.c_str();
+							}
+						}
 
-
-						if (id==1){setRgbColor(colorHex, CLIENT_01); lastColor[0] = colorHex.c_str(); std::cout << "01: " << lastColor[0] << std::endl;}
-						if (id==2){setRgbColor(colorHex, CLIENT_02); lastColor[1] = colorHex.c_str(); std::cout << "02: " << lastColor[1] << std::endl;}
+						//if (id==0){setRgbColor(colorHex, String(clients[0])); lastColor[0] = colorHex.c_str();}
+						//if (id==1){setRgbColor(colorHex, String(clients[1])); lastColor[1] = colorHex.c_str();}
 					} else if (request.indexOf("/sendPulse") != -1){
-						sendHtml("/sendPulse",CLIENT_01);
-						sendHtml("/sendPulse",CLIENT_02);
+						sendHtml("/sendPulse", String(clients[0]));
+						sendHtml("/sendPulse", String(clients[1]));
 					}
 					
 					// sending first connection informations to client
 					if (request.indexOf("/firstConnection") != -1){
 						int idIndex = request.indexOf("id=") + 3;
 						int id = request.substring(idIndex, idIndex + 1).toInt();
+
+						bool isAlreadyListed = false;
+						for(int connectedId : connectedIds){
+							if(connectedId == id){
+								isAlreadyListed = true;
+								break;
+							}
+						}
+						if(!isAlreadyListed){
+							connectedIds.emplace_back(id);
+							Serial.printf("remembered id: %i\n",id);
+						}
+
 						uint8_t rgb[3];
 
-						StringToRgb(lastColor[id-1], rgb);
+						StringToRgb(lastColor[id], rgb);
 						uint8_t r = rgb[0]; uint8_t g = rgb[1]; uint8_t b = rgb[2];
 						String jsonResponse = "	{\"r\":\"" + String(r) + "\", \"g\":\"" + String(g) + "\", \"b\":\"" + String(b) + "\"}";
 						client.println("HTTP/1.1 200 OK");

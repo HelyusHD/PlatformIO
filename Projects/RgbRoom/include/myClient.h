@@ -157,6 +157,7 @@
 			for (auto& strip : strips) {
 				strip.setColor(CRGB::Black);
 			}
+			server.send(200, "text/plain", "RGB color updated successfully");
 		}
 
 		// sets a uniform RGB color
@@ -170,6 +171,7 @@
 			for (LightStrip& strip : strips) {
 				strip.setColor(color);
 			}
+			server.send(200, "text/plain", "RGB color updated successfully");
 		}
 
 		void startTestAnimation(){
@@ -177,6 +179,7 @@
 				std::cout << "starting test animation" << std::endl;
 				strip.spawnPulse(5, 50, 0, strip.ledCount, CRGB::Red); //spawning default pulse
 			}
+			server.send(200, "text/plain", "RGB color updated successfully");
 		}
 
 		// loads setup information on first connection to server

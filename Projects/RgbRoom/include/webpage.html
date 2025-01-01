@@ -27,32 +27,32 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const lastColor_01 = "$LASTCOLOR_01"; // Example default color for picker 1
-            const lastColor_02 = "$LASTCOLOR_02"; // Example default color for picker 2
+            const lastColor_00 = "$LASTCOLOR_00"; // Example default color for picker 1
+            const lastColor_01 = "$LASTCOLOR_01"; // Example default color for picker 2
 
+            const colorPicker_00 = document.getElementById('colorPicker_00');
             const colorPicker_01 = document.getElementById('colorPicker_01');
-            const colorPicker_02 = document.getElementById('colorPicker_02');
+            const colorDisplay_00 = document.getElementById('colorDisplay_00');
             const colorDisplay_01 = document.getElementById('colorDisplay_01');
-            const colorDisplay_02 = document.getElementById('colorDisplay_02');
 
             // Initialize color pickers and displays
+            colorPicker_00.value = lastColor_00;
             colorPicker_01.value = lastColor_01;
-            colorPicker_02.value = lastColor_02;
+            colorDisplay_00.style.backgroundColor = lastColor_00;
             colorDisplay_01.style.backgroundColor = lastColor_01;
-            colorDisplay_02.style.backgroundColor = lastColor_02;
         });
     </script>
 </head>
 <body>
     <h1>RGB Lamp Control</h1>
     
+    <!-- Display and Picker for Client 00 -->
+    <div id="colorDisplay_00" class="color-display">&nbsp;</div>
+    <input type="color" id="colorPicker_00" oninput="updateColorDisplay('colorPicker_00', 'colorDisplay_00', 0)">
+
     <!-- Display and Picker for Client 01 -->
     <div id="colorDisplay_01" class="color-display">&nbsp;</div>
     <input type="color" id="colorPicker_01" oninput="updateColorDisplay('colorPicker_01', 'colorDisplay_01', 1)">
-
-    <!-- Display and Picker for Client 02 -->
-    <div id="colorDisplay_02" class="color-display">&nbsp;</div>
-    <input type="color" id="colorPicker_02" oninput="updateColorDisplay('colorPicker_02', 'colorDisplay_02', 2)">
 
     <p>
         <a href="/turnOff"><button>Turn Off</button></a>

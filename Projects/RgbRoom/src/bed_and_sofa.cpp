@@ -7,7 +7,8 @@ const int led_count = 83;
 const int repeater_count = 1;
 
 // Create an EspClient object
-EspClient myESP32(CLIENT_02, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID, "2");
+std::string ip = "192.168.4.";
+EspClient espClient(ip+std::to_string(clients[1]), ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID, "1");
 CRGB leds[led_count+repeater_count];
 CRGB background[led_count+repeater_count];
 int ledMapping[led_count+repeater_count];
@@ -25,21 +26,21 @@ void setup() {
 	}
 	ledMapping[led_count] = 56; // mapping repeater to end of array
 
-	myESP32.addStrip(leds, background, led_count, ledMapping, repeater_count);
-	myESP32.strips[0].addSegment(0, 56);
-	myESP32.strips[0].addSegment(57, 82);
-	//myESP32.strips[0].segments[0].setColor(CRGB::Red);
+	espClient.addStrip(leds, background, led_count, ledMapping, repeater_count);
+	espClient.strips[0].addSegment(0, 56);
+	espClient.strips[0].addSegment(57, 82);
+	//espClient.strips[0].segments[0].setColor(CRGB::Red);
 
 	
 	// Display network information from ESP32
-	myESP32.showNetworkInfo();
-	myESP32.networkingSetup();
+	espClient.showNetworkInfo();
+	espClient.networkingSetup();
 
 	// Show strip info
-	myESP32.showStripInfo();
+	espClient.showStripInfo();
 }
 
 void loop() {
-	myESP32.handleClient();
-	myESP32.updateAnimations();
+	espClient.handleClient();
+	espClient.updateAnimations();
 }

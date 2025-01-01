@@ -10,8 +10,8 @@ const int led_count = 432;
 #define NUM_LEDS_FL 324
 #define NUM_LEDS_R 108
 
-// Create an ESP32 object (network information)
-EspClient espClient(CLIENT_01, ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID, "1");
+std::string ip = "192.168.4.";
+EspClient espClient(ip+std::to_string(clients[0]), ESP_NETWORK_PASSWORD, ESP_NETWORK_SSID, "0");
 CRGB leds[led_count];
 CRGB background[led_count];
 int ledMapping[led_count];
