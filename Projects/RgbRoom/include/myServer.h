@@ -27,8 +27,8 @@
 
 		WiFiServer server;
 
-		String lastColor[2] = {"000000","000000"};
-		String networkAdress = "192.168.4.";
+		String lastColor[3] = {"000000","000000","000000"};
+		const String networkAdress = "192.168.4.";
 		std::vector<int> connectedIds;
 
 	public:
@@ -71,7 +71,7 @@
 
 		void sendHtml(String request, String id){
 			HTTPClient http;
-			String serverPath = "http://" + networkAdress + id + request;
+			String serverPath = "http://192.168.4." + id + request;
 			Serial.println("trying to send request "+serverPath);
 
 			http.begin(serverPath); // Anfrage an Client01 senden
@@ -128,8 +128,9 @@
 
 					// Anfragen verarbeiten
 					if (request.indexOf("/turnOff") != -1) {
-						sendHtml("/turnOff", String(clients[0]));
-						sendHtml("/turnOff", String(clients[1]));
+						for (int client : clients){
+							sendHtml("/turnOff", String(client));
+						}
 
 					} else if (request.indexOf("/setRgbColor") != -1) {
 						// RGB-Farbe aus der Anfrage extrahieren
@@ -138,18 +139,17 @@
 
 						int idIndex = request.indexOf("id=") + 3;
 						int id = request.substring(idIndex, idIndex + 1).toInt();
-						for (int client : clients){
-							if (id + 2==client){
-								setRgbColor(colorHex, String(client));
-								lastColor[client] = colorHex.c_str();
-							}
-						}
+
+						setRgbColor(colorHex, String(id + 2));
+						lastColor[id] = colorHex.c_str();
+
 
 						//if (id==0){setRgbColor(colorHex, String(clients[0])); lastColor[0] = colorHex.c_str();}
 						//if (id==1){setRgbColor(colorHex, String(clients[1])); lastColor[1] = colorHex.c_str();}
 					} else if (request.indexOf("/sendPulse") != -1){
-						sendHtml("/sendPulse", String(clients[0]));
-						sendHtml("/sendPulse", String(clients[1]));
+						for (int client : clients){
+							sendHtml("/sendPulse", String(client));
+						}
 					}
 					
 					// sending first connection informations to client
@@ -183,8 +183,9 @@
 						
 						String html = html_page;
 						// Inject lastColor into the webpage
-						html.replace("$LASTCOLOR_01", "#" + String(lastColor[0]));
-						html.replace("$LASTCOLOR_02", "#" + String(lastColor[1]));
+						html.replace("$LASTCOLOR_00", "#" + String(lastColor[0]));
+						html.replace("$LASTCOLOR_01", "#" + String(lastColor[1]));
+						html.replace("$LASTCOLOR_02", "#" + String(lastColor[2]));
 
 
 						// HTML-Antwort senden
