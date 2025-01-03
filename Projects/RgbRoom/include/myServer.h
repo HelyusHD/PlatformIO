@@ -179,7 +179,30 @@
 						client.println();
 						client.println(jsonResponse);
 						client.stop();
-					} else {
+						} else if (request.indexOf("getLastColor") != -1) {
+							// Extrahiere die ID aus der Anfrage
+							int idIndex = request.indexOf("id=") + 3;
+							int id = request.substring(idIndex).toInt();
+
+							// Überprüfe, ob die ID gültig ist (z. B. zwischen 0 und 9)
+							if (id >= 0 && id < 10) { 
+								// Sende HTTP-Header
+								client.println("HTTP/1.1 200 OK");
+								client.println("Content-Type: application/json"); // JSON-Antwort
+								client.println("Connection: close");
+								client.println();
+
+								// Sende JSON-Format mit der Farbe
+								client.println("{\"color\":\"#" + String(lastColor[id]) + "\"}");
+							} else {
+								// Ungültige ID, sende Fehlerantwort
+								client.println("HTTP/1.1 400 Bad Request");
+								client.println("Content-Type: text/plain");
+								client.println("Connection: close");
+								client.println();
+								client.println("Invalid ID");
+							}
+						} else {
 						
 						String html = html_page;
 						// Inject lastColor into the webpage

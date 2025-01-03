@@ -16,53 +16,71 @@
             border-radius: 10px;
         }
         button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        select { padding: 10px; font-size: 16px; margin: 10px; }
     </style>
     <script>
-        function updateColorDisplay(pickerId, displayId, clientId) {
-            const colorPicker = document.getElementById(pickerId);
-            const colorDisplay = document.getElementById(displayId);
-            const selectedColor = colorPicker.value;
-            colorDisplay.style.backgroundColor = selectedColor;
-            fetch(`/setRgbColor?color=${selectedColor.substring(1)}&id=${clientId}`);
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const lastColor_00 = "$LASTCOLOR_00";
-            const lastColor_01 = "$LASTCOLOR_01";
-            const lastColor_02 = "$LASTCOLOR_02";
+            const dropdown = document.getElementById('clientDropdown');
+            const colorPicker = document.getElementById('colorPicker');
+            const colorDisplay = document.getElementById('colorDisplay');
 
-            const colorPicker_00 = document.getElementById('colorPicker_00');
-            const colorPicker_01 = document.getElementById('colorPicker_01');
-            const colorPicker_02 = document.getElementById('colorPicker_02');
-            const colorDisplay_00 = document.getElementById('colorDisplay_00');
-            const colorDisplay_01 = document.getElementById('colorDisplay_01');
-            const colorDisplay_02 = document.getElementById('colorDisplay_02');
+            // Funktion zum Abrufen der letzten Farbe vom Server
+            async function fetchLastColor(clientId) {
+                try {
+                    const response = await fetch(`/getLastColor?id=${clientId}`);
+                    if (response.ok) {
+                        const data = await response.json(); // Angenommen, der Server gibt { color: '#rrggbb' } zurück
+                        return data.color || '#ffffff'; // Standardfarbe Weiß, falls keine Farbe gefunden
+                    } else {
+                        console.error('Fehler beim Abrufen der Farbe:', response.status);
+                        return '#ffffff'; // Standardfarbe bei Fehler
+                    }
+                } catch (error) {
+                    console.error('Netzwerkfehler:', error);
+                    return '#ffffff';
+                }
+            }
 
+            // Funktion zum Aktualisieren des Farbwählers und der Anzeige
+            async function updateColor(clientId) {
+                const selectedColor = await fetchLastColor(clientId);
+                colorPicker.value = selectedColor;
+                colorDisplay.style.backgroundColor = selectedColor;
+            }
 
-            // Initialize color pickers and displays
-            colorPicker_00.value = lastColor_00;
-            colorPicker_01.value = lastColor_01;
-            colorPicker_01.value = lastColor_02;
-            colorDisplay_00.style.backgroundColor = lastColor_00;
-            colorDisplay_01.style.backgroundColor = lastColor_01;
-            colorDisplay_01.style.backgroundColor = lastColor_02;
+            // Event-Handler für das Dropdown-Menü
+            dropdown.addEventListener('change', () => {
+                const clientId = dropdown.value;
+                updateColor(clientId); // Farbe für den ausgewählten Client abrufen und anzeigen
+            });
+
+            // Event-Handler für den Farbwähler
+            colorPicker.addEventListener('input', () => {
+                const clientId = dropdown.value;
+                const selectedColor = colorPicker.value;
+                colorDisplay.style.backgroundColor = selectedColor;
+
+                // Farbe an den Server senden und aktualisieren
+                fetch(`/setRgbColor?color=${selectedColor.substring(1)}&id=${clientId}`)
+                    .catch(error => console.error('Fehler beim Senden der Farbe:', error));
+            });
+
+            // Initialisierung mit dem ersten Client
+            updateColor(0);
         });
     </script>
 </head>
 <body>
     <h1>RGB Lamp Control</h1>
-    
-    <!-- Display and Picker for Client 00 -->
-    <div id="colorDisplay_00" class="color-display">&nbsp;</div>
-    <input type="color" id="colorPicker_00" oninput="updateColorDisplay('colorPicker_00', 'colorDisplay_00', 0)">
 
-    <!-- Display and Picker for Client 01 -->
-    <div id="colorDisplay_01" class="color-display">&nbsp;</div>
-    <input type="color" id="colorPicker_01" oninput="updateColorDisplay('colorPicker_01', 'colorDisplay_01', 1)">
+    <select id="clientDropdown">
+        <option value="0">Client 00</option>
+        <option value="1">Client 01</option>
+        <option value="2">Client 02</option>
+    </select>
 
-    <!-- Display and Picker for Client 02 -->
-    <div id="colorDisplay_02" class="color-display">&nbsp;</div>
-    <input type="color" id="colorPicker_02" oninput="updateColorDisplay('colorPicker_02', 'colorDisplay_02', 2)">
+    <div id="colorDisplay" class="color-display">&nbsp;</div>
+    <input type="color" id="colorPicker">
 
     <p>
         <a href="/turnOff"><button>Turn Off</button></a>
@@ -70,6 +88,8 @@
     </p>
 </body>
 </html>
+
+
 
 
 
