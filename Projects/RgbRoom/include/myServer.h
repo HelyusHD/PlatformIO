@@ -128,8 +128,8 @@
 
 					// Anfragen verarbeiten
 					if (request.indexOf("/turnOff") != -1) {
-						for (int client : clients){
-							sendHtml("/turnOff", String(client));
+						for (int cl : clients){
+							sendHtml("/turnOff", String(cl));
 						}
 
 					} else if (request.indexOf("/setRgbColor") != -1) {
@@ -138,24 +138,29 @@
 						String colorHex = request.substring(colorIndex, colorIndex + 6);
 
 						int idIndex = request.indexOf("id=") + 3;
-						int id = request.substring(idIndex, idIndex + 1).toInt();
+						int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
+						std::cout << id << std::endl;
+						if (id==-1){
+							for (int connectedId : connectedIds){
+								setRgbColor(colorHex, String(connectedId + 2)); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
+								lastColor[connectedId] = colorHex.c_str();
+							}
+						} else {
+							setRgbColor(colorHex, String(id + 2));
+							lastColor[id] = colorHex.c_str();
+						}
 
-						setRgbColor(colorHex, String(id + 2));
-						lastColor[id] = colorHex.c_str();
 
-
-						//if (id==0){setRgbColor(colorHex, String(clients[0])); lastColor[0] = colorHex.c_str();}
-						//if (id==1){setRgbColor(colorHex, String(clients[1])); lastColor[1] = colorHex.c_str();}
 					} else if (request.indexOf("/sendPulse") != -1){
-						for (int client : clients){
-							sendHtml("/sendPulse", String(client));
+						for (int cl : clients){
+							sendHtml("/sendPulse", String(cl));
 						}
 					}
 					
 					// sending first connection informations to client
 					if (request.indexOf("/firstConnection") != -1){
 						int idIndex = request.indexOf("id=") + 3;
-						int id = request.substring(idIndex, idIndex + 1).toInt();
+						int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
 
 						bool isAlreadyListed = false;
 						for(int connectedId : connectedIds){
@@ -182,7 +187,7 @@
 						} else if (request.indexOf("getLastColor") != -1) {
 							// Extrahiere die ID aus der Anfrage
 							int idIndex = request.indexOf("id=") + 3;
-							int id = request.substring(idIndex).toInt();
+							int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
 
 							// Überprüfe, ob die ID gültig ist (z. B. zwischen 0 und 9)
 							if (id >= 0 && id < 10) { 

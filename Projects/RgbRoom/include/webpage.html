@@ -27,13 +27,16 @@
             // Funktion zum Abrufen der letzten Farbe vom Server
             async function fetchLastColor(clientId) {
                 try {
+                    if (clientId === "-1") {
+                        return "#ffffff"; // Standardfarbe bei Auswahl von "all"
+                    }
                     const response = await fetch(`/getLastColor?id=${clientId}`);
                     if (response.ok) {
-                        const data = await response.json(); // Angenommen, der Server gibt { color: '#rrggbb' } zurück
-                        return data.color || '#ffffff'; // Standardfarbe Weiß, falls keine Farbe gefunden
+                        const data = await response.json();
+                        return data.color || '#ffffff';
                     } else {
                         console.error('Fehler beim Abrufen der Farbe:', response.status);
-                        return '#ffffff'; // Standardfarbe bei Fehler
+                        return '#ffffff';
                     }
                 } catch (error) {
                     console.error('Netzwerkfehler:', error);
@@ -51,7 +54,13 @@
             // Event-Handler für das Dropdown-Menü
             dropdown.addEventListener('change', () => {
                 const clientId = dropdown.value;
-                updateColor(clientId); // Farbe für den ausgewählten Client abrufen und anzeigen
+                if (clientId !== "-1") {
+                    updateColor(clientId);
+                } else {
+                    // Setze Standardanzeige für "all"
+                    colorDisplay.style.backgroundColor = "#ffffff";
+                    colorPicker.value = "#ffffff";
+                }
             });
 
             // Event-Handler für den Farbwähler
@@ -60,13 +69,50 @@
                 const selectedColor = colorPicker.value;
                 colorDisplay.style.backgroundColor = selectedColor;
 
-                // Farbe an den Server senden und aktualisieren
-                fetch(`/setRgbColor?color=${selectedColor.substring(1)}&id=${clientId}`)
-                    .catch(error => console.error('Fehler beim Senden der Farbe:', error));
+                if (clientId === "-1") {
+                    // Sende die Farbe an alle Clients
+                    fetch(`/setRgbColor?color=${selectedColor.substring(1)}&id=-1`)
+                        .catch(error => console.error('Fehler beim Senden der Farbe:', error));
+                } else {
+                    // Sende die Farbe an den ausgewählten Client
+                    fetch(`/setRgbColor?color=${selectedColor.substring(1)}&id=${clientId.padStart(2, '0')}`)
+                        .catch(error => console.error('Fehler beim Senden der Farbe:', error));
+                }
             });
 
+            // Funktionen für die Buttons
+            async function turnOff() {
+                try {
+                    const clientId = dropdown.value;
+                    if (clientId === "-1") {
+                        await fetch('/turnOff?id=-1'); // Alle Clients ausschalten
+                    } else {
+                        await fetch(`/turnOff?id=${clientId.padStart(2, '0')}`); // Einzelnen Client ausschalten
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Ausschalten:', error);
+                }
+            }
+
+            async function sendPulse() {
+                try {
+                    const clientId = dropdown.value;
+                    if (clientId === "-1") {
+                        await fetch('/sendPulse?id=-1'); // Pulse an alle senden
+                    } else {
+                        await fetch(`/sendPulse?id=${clientId.padStart(2, '0')}`); // Pulse an einen senden
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Senden des Pulses:', error);
+                }
+            }
+
+            // Event-Listener für die Buttons
+            document.getElementById('turnOffButton').addEventListener('click', turnOff);
+            document.getElementById('sendPulseButton').addEventListener('click', sendPulse);
+
             // Initialisierung mit dem ersten Client
-            updateColor(0);
+            updateColor("00");
         });
     </script>
 </head>
@@ -74,24 +120,20 @@
     <h1>RGB Lamp Control</h1>
 
     <select id="clientDropdown">
-        <option value="0">Client 00</option>
-        <option value="1">Client 01</option>
-        <option value="2">Client 02</option>
+        <option value="00">Client 00</option>
+        <option value="01">Client 01</option>
+        <option value="02">Client 02</option>
+        <option value="-1">All</option>
     </select>
 
     <div id="colorDisplay" class="color-display">&nbsp;</div>
     <input type="color" id="colorPicker">
 
     <p>
-        <a href="/turnOff"><button>Turn Off</button></a>
-        <a href="/sendPulse"><button>Send Pulse</button></a>
+        <button id="turnOffButton">Turn Off</button>
+        <button id="sendPulseButton">Send Pulse</button>
     </p>
 </body>
 </html>
-
-
-
-
-
 
 <!-- ); // end of TO_STRING <!-- -->  
