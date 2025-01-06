@@ -139,7 +139,6 @@
 
 						int idIndex = request.indexOf("id=") + 3;
 						int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
-						std::cout << id << std::endl;
 						if (id==-1){
 							for (int connectedId : clients){
 								setRgbColor(colorHex, String(connectedId)); // Subtrahiere 2 von ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
