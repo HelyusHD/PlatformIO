@@ -139,10 +139,18 @@ public:
 		pulseSources.emplace_back(pulse_length, lamps_per_sec, spawn_position, end_position, pulseColor, period_time);
 	}
 
+	void newColorFunction(int led_count, std::function<CRGB(int, unsigned long)> function){
+		colorFunctions.emplace_back(led_count, function);
+	}
+
 	void update() {
 		// safing state of LED array
 		for(int i = 0; i<ledCount; i++){
 			background[i] = leds[i];
+		}
+
+		for (ColorFunktion& colorFunction : colorFunctions){
+			colorFunction.update(leds, map);
 		}
 
 		// pulseSources
