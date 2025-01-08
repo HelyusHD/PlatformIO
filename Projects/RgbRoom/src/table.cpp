@@ -2,6 +2,7 @@
 #include "myClient.h"
 #include "networkConfig.h"
 #include <FastLED.h>
+#include "colorFunctions.h"
 
 const int led_count = 432;
 
@@ -30,6 +31,7 @@ void setup() {
 	espClient.addStrip(leds, background, led_count, ledMapping, 0);
 	//espClient.strips[0].animationManager.newPulseSource(10, 20.0, 0, 316, CRGB::Green, 1000);
 	//espClient.strips[0].animationManager.newPulseSource(10, 20.0, 431, 116, CRGB::Blue, 1000);
+	//espClient.strips[0].animationManager.newColorFunction(led_count,ColorFunctions::Rainbow(1000,50,255,20));
 
 	// Display network information from ESP32
 	espClient.showNetworkInfo();

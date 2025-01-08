@@ -98,11 +98,17 @@ public:
 	ColorFunktion(int led_count, std::function<CRGB(int, unsigned long)> function)
 	: func(function),ledCount(led_count){};
 
-	void update(CRGB* leds, int* map){
-		for(int i=0; i<ledCount; i++){
-			leds[map[i]] = func(i, millis()-spawnTick);
-		}
-	}
+    // operator() to replace update
+    void operator()(CRGB* leds, int* map) {
+        for (int i = 0; i < ledCount; i++) {
+            leds[map[i]] = func(i, millis() - spawnTick);
+        }
+    }
+
+    // Optionally keep update method for backward compatibility
+    void update(CRGB* leds, int* map) {
+        (*this)(leds, map); // Simply delegate to operator()
+    }
 };
 
 // orchestrates and updates all animations and sources
@@ -149,8 +155,9 @@ public:
 			background[i] = leds[i];
 		}
 
+		// colorFunktions
 		for (ColorFunktion& colorFunction : colorFunctions){
-			colorFunction.update(leds, map);
+			colorFunction(leds, map);
 		}
 
 		// pulseSources

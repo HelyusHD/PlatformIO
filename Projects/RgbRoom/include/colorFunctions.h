@@ -11,11 +11,15 @@ namespace ColorFunctions {
     class Rainbow {
     private:
         unsigned long periodTime;
+        int saturation;
+        int brightnes;
+        float lenght; //lenght (in leds) of the repeating rainbow
     public:
-        Rainbow(unsigned long period) : periodTime(period) {}
+        Rainbow(unsigned long period, int wave_lenght, int saturation_, int brightnes_)
+        : periodTime(period), lenght(255/wave_lenght), saturation(saturation_), brightnes(brightnes_) {}
         CRGB operator()(int index, unsigned long time) const {
-            uint8_t hue = (index * 10 + (time / periodTime) % 255);
-            return CHSV(hue, 255, 255);
+            uint8_t hue = (index * lenght + (255 * time / periodTime) % 255);
+            return CHSV(hue, saturation, brightnes);
         }
     };
 
