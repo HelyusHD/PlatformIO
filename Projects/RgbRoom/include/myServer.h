@@ -31,6 +31,7 @@
 		const String networkAdress = "192.168.4.";
 		std::vector<int> connectedIds;
 
+
 	public:
 		EspServer(std::string password, std::string ssid, std::string dnsName, std::string homePassword, std::string homeSsid)
 			: networkPassword(password), networkSSID(ssid), dns(dnsName), homeNetworkPassword(homePassword), homeNetworkSSID(homeSsid), server(80) {}
@@ -61,7 +62,7 @@
 			}
 
 			// Access Point Mode (Eigenes Netzwerk erstellen)
-			WiFi.softAP(networkSSID.c_str(), networkPassword.c_str());
+			WiFi.softAP(networkSSID.c_str(), networkPassword.c_str(), 1, 0, 8); // meaning: WiFi.softAP(ssid, password, channel = 1, hidden = 0, max_connections = 8);
 			Serial.print("AP-IP: ");
 			Serial.println(WiFi.softAPIP()); // Ausgabe der IP im Access Point-Modus
 
@@ -69,10 +70,22 @@
 			std::cout << "Web server started!\n" << std::endl;
 		}
 
-		void sendHtml(String request, String id){
+		bool powerPlugOn(int id){
+			Serial.print("turning on: ");
+			Serial.println(tasmota[id]);
+			return sendHtml("/cm?cmnd=Power%20On", String(tasmota[id]));
+		}
+
+		bool powerPlugOff(int id){
+			return sendHtml("/cm?cmnd=Power%20Off", String(tasmota[id]));
+		}
+
+		bool sendHtml(String request, String id){
 			HTTPClient http;
 			String serverPath = "http://192.168.4." + id + request;
 			Serial.println("trying to send request "+serverPath);
+
+			http.setTimeout(1000);  // Set timeout to 1000 milliseconds (1 second)
 
 			http.begin(serverPath); // Anfrage an Client01 senden
 			int httpResponseCode = http.GET(); // GET-Anfrage senden
@@ -80,6 +93,28 @@
 			if (httpResponseCode > 0) {
 				Serial.print("Antwort vom Client: ");
 				Serial.println(httpResponseCode);
+				http.end(); // Verbindung schließen
+				return true;
+			// only trying once to turn on the power plug
+			}else if (httpResponseCode == -1){
+				Serial.print("Fehler bei der Anfrage: ");
+				Serial.println(httpResponseCode);
+				// finds the id of the power plug
+				for(int i=0;i < (sizeof(clients) / sizeof(clients[0])); i++){
+					Serial.print("i = id    ");Serial.print(i);Serial.print(" = ");Serial.println(id);
+					if(clients[i] == id.toInt()){
+						Serial.print("i: ");
+						Serial.println(i);
+						if (powerPlugOff(i)){
+							delay(100);
+							if (powerPlugOn(i)){
+								// Save the failed request for retry
+							}
+						}
+
+						break;
+					}
+				}
 			} else {
 				Serial.print("Fehler bei der Anfrage: ");
 				Serial.println(httpResponseCode);
@@ -87,6 +122,7 @@
 			}
 
 			http.end(); // Verbindung schließen
+			return false;
 		}
 
 		// Hexadezimal in Dezimal (R, G, B) umwandeln
@@ -97,7 +133,7 @@
 		}
 
 		void setRgbColor(String colorHex, String id){
-			Serial.println("Farbwert erhalten: " + colorHex+"sending to "+id);
+			Serial.println("Farbwert erhalten: " + colorHex+" sending to "+id);
 			uint8_t rgb[3];
 			StringToRgb(colorHex, rgb);
 			uint8_t r = rgb[0];
@@ -108,9 +144,6 @@
 			const String request = "/RgbColor?r=" + String(r) + "&g=" + String(g) + "&b=" + String(b);
 			sendHtml(request, id);
 		}
-
-		void handleSetRgbColor(){}
-		void handleSendPulse(){}
 
 		void handleClient(){
 			// Webserver nur im Heimnetzwerk bedienen
@@ -138,14 +171,14 @@
 						String colorHex = request.substring(colorIndex, colorIndex + 6);
 
 						int idIndex = request.indexOf("id=") + 3;
-						int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
+						int id = request.substring(idIndex, idIndex+2).toInt();
 						if (id==-1){
 							for (int connectedId : clients){
-								setRgbColor(colorHex, String(connectedId)); // Subtrahiere 2 von ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
+								setRgbColor(colorHex, String(connectedId));
 								lastColor[connectedId-2] = colorHex.c_str();
 							}
 						} else {
-							setRgbColor(colorHex, String(id + 2));
+							setRgbColor(colorHex, String(clients[id]));
 							lastColor[id] = colorHex.c_str();
 						}
 
@@ -154,12 +187,22 @@
 						for (int cl : clients){
 							sendHtml("/sendPulse", String(cl));
 						}
+					} else if (request.indexOf("/tasmotaOn") != -1){
+						//int idIndex = request.indexOf("id=") + 3;
+						//int id = request.substring(idIndex, idIndex+2).toInt();
+						//powerPlugOn(id);
+						for (int i=0;i < (sizeof(tasmota) / sizeof(tasmota[0]));i++){powerPlugOn(i);}
+					} else if (request.indexOf("/tasmotaOff") != -1){
+						//int idIndex = request.indexOf("id=") + 3;
+						//int id = request.substring(idIndex, idIndex+2).toInt();
+						//powerPlugOff(id);
+						for (int i=0;i < (sizeof(tasmota) / sizeof(tasmota[0]));i++){powerPlugOff(i);}
 					}
 					
 					// sending first connection informations to client
 					if (request.indexOf("/firstConnection") != -1){
 						int idIndex = request.indexOf("id=") + 3;
-						int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
+						int id = request.substring(idIndex, idIndex+2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
 
 						bool isAlreadyListed = false;
 						for(int connectedId : connectedIds){
@@ -186,7 +229,7 @@
 						} else if (request.indexOf("getLastColor") != -1) {
 							// Extrahiere die ID aus der Anfrage
 							int idIndex = request.indexOf("id=") + 3;
-							int id = request.substring(idIndex, idIndex + 2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
+							int id = request.substring(idIndex, idIndex+2).toInt(); // Addiere 2 zur ID, da der Server die IP-Adresse .1 hat und der erste Client bei .2 beginnt
 
 							// Überprüfe, ob die ID gültig ist (z. B. zwischen 0 und 9)
 							if (id >= 0 && id < 10) { 

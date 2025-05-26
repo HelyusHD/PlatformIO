@@ -107,9 +107,27 @@
                 }
             }
 
+            async function tasmotaOn() {
+                try {
+                        await fetch(`/tasmotaOn?id=10`); // Pulse an einen senden
+                } catch (error) {
+                    console.error('Fehler bei tasmotaOn:', error);
+                }
+            }
+
+            async function tasmotaOff() {
+                try {
+                        await fetch(`/tasmotaOff?id=10`); // Pulse an einen senden
+                } catch (error) {
+                    console.error('Fehler bei tasmotaOff:', error);
+                }
+            }
+
             // Event-Listener für die Buttons
             document.getElementById('turnOffButton').addEventListener('click', turnOff);
             document.getElementById('sendPulseButton').addEventListener('click', sendPulse);
+            document.getElementById('tasmotaOnButton').addEventListener('click', tasmotaOn);
+            document.getElementById('tasmotaOffButton').addEventListener('click', tasmotaOff);
 
             // Initialisierung mit dem ersten Client
             updateColor("00");
@@ -132,6 +150,8 @@
     <p>
         <button id="turnOffButton">Turn Off</button>
         <button id="sendPulseButton">Send Pulse</button>
+        <button id="tasmotaOnButton">All Tasmota On</button>
+        <button id="tasmotaOffButton">All Tasmota Off</button>
     </p>
 </body>
 </html>

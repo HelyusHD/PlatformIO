@@ -121,7 +121,6 @@
 		const std::string networkSSID;
 		WebServer server;
 		const std::string id;
-
 	public:
 		std::vector<LightStrip> strips; // Container for holding multiple strip segments
 
@@ -183,7 +182,7 @@
 		}
 
 		// loads setup information on first connection to server
-		void firstConnectionSetup(){
+		bool firstConnectionSetup(){
 			// updating color on first connection
 			HTTPClient http;
 			String url = String("http://192.168.4.1") + "/firstConnection" + "?id=" + id.c_str();
@@ -205,14 +204,15 @@
 					for (LightStrip& strip : strips) {
 						strip.setColor(color);
 					}
-
 				} else {
 					Serial.print("couldnt parse JSON: ");
 					Serial.println(error.c_str());
 				}
+			return true;
 
 			} else {
 			Serial.println("couldnt load first connect config");
+			return false;
 			}
 		}
 
@@ -252,7 +252,7 @@
 			server.begin();
 			std::cout << "Web server started!\n" << std::endl;
 
-			firstConnectionSetup();
+			while (!firstConnectionSetup());
 		}
 
 		void updateAnimations(){
