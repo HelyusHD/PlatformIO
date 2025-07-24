@@ -1,0 +1,1 @@
+only processor 20ma 9V
