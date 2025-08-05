@@ -175,9 +175,10 @@ bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) {
   return true;
 }
 
-bool sdSetup(){
-  logger.begin(5);
+MyLogger logger(SD);
+mySdManager SdM(SD);
 
+bool sdSetup(){
   if(!SD.begin(5)){
     LOG(LOG_ERROR, "Card Mount Failed");
     return false;
@@ -188,6 +189,9 @@ bool sdSetup(){
     LOG(LOG_ERROR, "No SD card attached");
     return false;
   }
+
+  //static MyLogger logger(SD);
+  logger.init();
 
   String cardTypeStr = "SD Card Type: ";
   switch (cardType) {
@@ -201,7 +205,7 @@ bool sdSetup(){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   LOG(LOG_INFO, String("SD Card Size: ") + cardSize + "MB");
 
-  static mySdManager SdM(SD);
+  //static mySdManager SdM(SD);
 
   SdM.listDir("/", 5);
   SdM.createDir("/csv");

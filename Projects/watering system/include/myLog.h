@@ -22,19 +22,17 @@ enum LogLevel {
 class MyLogger {
 public:
   // binds logger to a csPin. Thats a connection on the SD module used to transfere data
-  // requires WiFi connection already active
-  void begin(uint8_t csPin = SS, const char* ntpServer = "pool.ntp.org") {
-    if (!SD.begin(csPin)) {
-      Serial.println("SD card init failed. Logging to file disabled.");
-      sdAvailable = false;
-    } else {
-      Serial.println("SUCCESS: Logging to SD");
-      sdAvailable = true;
-    }
+  MyLogger(fs::FS& fs_) : fs(fs_) {}
 
-    // NTP time setup (requires WiFi connection already active)
-    configTime(0, 0, ntpServer);  // UTC; adjust timezone if needed
-    setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);  // Europe (with DST)
+  // requires WiFi connection already active
+  // will load the time and date from a server
+  void init(const char* ntpServer = "pool.ntp.org") {
+    Serial.println("SUCCESS: Logging to SD");
+    sdAvailable = true;
+    fs.remove(LOG_FILE_PATH);
+
+    configTime(0, 0, ntpServer);
+    setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
     tzset();
   }
 
@@ -49,7 +47,7 @@ public:
     Serial.println(logLine);
 
     if (sdAvailable) {
-      File file = SD.open(LOG_FILE_PATH, FILE_APPEND);
+      File file = fs.open(LOG_FILE_PATH, FILE_APPEND);
       if (file) {
         file.println(logLine);
         file.close();
@@ -59,6 +57,7 @@ public:
 
 private:
   bool sdAvailable = false;
+  fs::FS &fs;
 
   String levelToString(LogLevel level) {
     switch (level) {
