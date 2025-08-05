@@ -6,6 +6,8 @@
 #include <time.h>
 #include <WiFi.h>
 
+
+// used to define debug level
 enum LogLevel {
   LOG_DEBUG,
   LOG_INFO,
@@ -14,16 +16,19 @@ enum LogLevel {
   LOG_NONE
 };
 
-#define LOG_FILE_PATH "/log.txt"
-#define LOG_LEVEL_THRESHOLD LOG_DEBUG
+#define LOG_FILE_PATH "/log.txt" // file path on SD card where the log gets stored
+#define LOG_LEVEL_THRESHOLD LOG_DEBUG // configuration for the used debug level
 
 class MyLogger {
 public:
+  // binds logger to a csPin. Thats a connection on the SD module used to transfere data
+  // requires WiFi connection already active
   void begin(uint8_t csPin = SS, const char* ntpServer = "pool.ntp.org") {
     if (!SD.begin(csPin)) {
       Serial.println("SD card init failed. Logging to file disabled.");
       sdAvailable = false;
     } else {
+      Serial.println("SUCCESS: Logging to SD");
       sdAvailable = true;
     }
 
@@ -33,6 +38,7 @@ public:
     tzset();
   }
 
+  // logs to SD
   void log(LogLevel level, const String& message) {
     if (level < LOG_LEVEL_THRESHOLD) return;
 
