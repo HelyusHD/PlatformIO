@@ -1,4 +1,5 @@
 #include <networkConfig.h>
+#include <WiFi.h>
 
 #ifndef SERVER
 #define SERVER
