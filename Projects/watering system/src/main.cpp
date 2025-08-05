@@ -6,7 +6,7 @@
 #include <networkConfig.h>
 #include <mySdManager.h>
 
-int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter = nullptr){
+int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter){
   LOG(LOG_INFO, String("Listing directory: ") + dirname);
   int matchCount = 0;
 
