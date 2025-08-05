@@ -199,19 +199,7 @@ void setup(){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   LOG(LOG_INFO, String("SD Card Size: ") + cardSize + "MB");
 
-  listDir(SD, "/", 0);
-  createDir(SD, "/mydir");
-  listDir(SD, "/", 0);
-  removeDir(SD, "/mydir");
-  listDir(SD, "/", 2);
-  writeFile(SD, "/hello.txt", "Hello ");
-  appendFile(SD, "/hello.txt", "World!\n");
-  readFile(SD, "/hello.txt");
-  deleteFile(SD, "/foo.txt");
-  renameFile(SD, "/hello.txt", "/foo.txt");
-  readFile(SD, "/foo.txt");
-  testFileIO(SD, "/test.txt");
-
+  listDir(SD, "/", 5);
   createDir(SD, "/csv");
   const char * csv_str = 
     "my_strings,my_numbers\n"
