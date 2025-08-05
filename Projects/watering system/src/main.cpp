@@ -4,8 +4,9 @@
 #include <CSV_Parser.h>
 #include "myLog.h"
 #include <networkConfig.h>
+#include <mySdManager.h>
 
-void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+void mySdManager::listDir(const char * dirname, uint8_t levels){
   LOG(LOG_INFO, String("Listing directory: ") + dirname);
 
   File root = fs.open(dirname);
@@ -23,7 +24,7 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     if(file.isDirectory()){
       LOG(LOG_INFO, String("  DIR : ") + file.name());
       if(levels){
-        listDir(fs, file.name(), levels -1);
+        listDir(file.name(), levels -1);
       }
     } else {
       LOG(LOG_INFO, String("  FILE: ") + file.name() + "  SIZE: " + file.size());
@@ -32,7 +33,7 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
   }
 }
 
-void createDir(fs::FS &fs, const char * path){
+void mySdManager::createDir(const char * path){
   LOG(LOG_INFO, String("Creating Dir: ") + path);
   if(fs.mkdir(path)){
     LOG(LOG_INFO, "Dir created");
@@ -41,7 +42,7 @@ void createDir(fs::FS &fs, const char * path){
   }
 }
 
-void removeDir(fs::FS &fs, const char * path){
+void mySdManager::removeDir(const char * path){
   LOG(LOG_INFO, String("Removing Dir: ") + path);
   if(fs.rmdir(path)){
     LOG(LOG_INFO, "Dir removed");
@@ -50,7 +51,7 @@ void removeDir(fs::FS &fs, const char * path){
   }
 }
 
-void readFile(fs::FS &fs, const char * path){
+void mySdManager::readFile(const char * path){
   LOG(LOG_INFO, String("Reading file: ") + path);
 
   File file = fs.open(path);
@@ -67,7 +68,7 @@ void readFile(fs::FS &fs, const char * path){
   file.close();
 }
 
-void writeFile(fs::FS &fs, const char * path, const char * message){
+void mySdManager::writeFile(const char * path, const char * message){
   LOG(LOG_INFO, String("Writing file: ") + path);
 
   File file = fs.open(path, FILE_WRITE);
@@ -83,7 +84,7 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
   file.close();
 }
 
-void appendFile(fs::FS &fs, const char * path, const char * message){
+void mySdManager::appendFile(const char * path, const char * message){
   LOG(LOG_INFO, String("Appending to file: ") + path);
 
   File file = fs.open(path, FILE_APPEND);
@@ -99,7 +100,7 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
   file.close();
 }
 
-void renameFile(fs::FS &fs, const char * path1, const char * path2){
+void mySdManager::renameFile(const char * path1, const char * path2){
   LOG(LOG_INFO, String("Renaming file ") + path1 + " to " + path2);
   if (fs.rename(path1, path2)) {
     LOG(LOG_INFO, "File renamed");
@@ -108,7 +109,7 @@ void renameFile(fs::FS &fs, const char * path1, const char * path2){
   }
 }
 
-void deleteFile(fs::FS &fs, const char * path){
+void mySdManager::deleteFile(const char * path){
   LOG(LOG_INFO, String("Deleting file: ") + path);
   if(fs.remove(path)){
     LOG(LOG_INFO, "File deleted");
@@ -117,7 +118,7 @@ void deleteFile(fs::FS &fs, const char * path){
   }
 }
 
-void testFileIO(fs::FS &fs, const char * path){
+void mySdManager::testFileIO(const char * path){
   File file = fs.open(path);
   static uint8_t buf[512];
   size_t len = 0;
@@ -168,23 +169,18 @@ bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) {
   return true;
 }
 
-void setup(){
-  Serial.begin(115200);
-
-  WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) delay(500);
-
+bool sdSetup(){
   logger.begin(5);
 
   if(!SD.begin(5)){
     LOG(LOG_ERROR, "Card Mount Failed");
-    return;
+    return false;
   }
   uint8_t cardType = SD.cardType();
 
   if(cardType == CARD_NONE){
     LOG(LOG_ERROR, "No SD card attached");
-    return;
+    return false;
   }
 
   String cardTypeStr = "SD Card Type: ";
@@ -199,13 +195,15 @@ void setup(){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   LOG(LOG_INFO, String("SD Card Size: ") + cardSize + "MB");
 
-  listDir(SD, "/", 5);
-  createDir(SD, "/csv");
+  static mySdManager SdM(SD);
+
+  SdM.listDir("/", 5);
+  SdM.createDir("/csv");
   const char * csv_str = 
     "my_strings,my_numbers\n"
     "hello,5\n"
     "world,10\n";
-  writeFile(SD, "/csv/first.csv", csv_str);
+  SdM.writeFile("/csv/first.csv", csv_str);
   char content[256];
   if (readFileToBuffer("/csv/first.csv", content, sizeof(content))){
     CSV_Parser cp(content, "sL");
@@ -221,6 +219,16 @@ void setup(){
 
   LOG(LOG_INFO, String("Total space: ") + (SD.totalBytes() / (1024 * 1024)) + "MB");
   LOG(LOG_INFO, String("Used space: ") + (SD.usedBytes() / (1024 * 1024)) + "MB");
+  return true;
+}
+
+void setup(){
+  Serial.begin(115200);
+
+  WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+
+  sdSetup();
 }
 
 void loop(){}
