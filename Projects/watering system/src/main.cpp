@@ -6,57 +6,63 @@
 #include <networkConfig.h>
 #include <mySdManager.h>
 
-void mySdManager::listDir(const char * dirname, uint8_t levels){
+int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter = nullptr){
   LOG(LOG_INFO, String("Listing directory: ") + dirname);
+  int matchCount = 0;
 
   File root = fs.open(dirname);
   if(!root){
     LOG(LOG_ERROR, "Failed to open directory");
-    return;
+    return matchCount;
   }
   if(!root.isDirectory()){
     LOG(LOG_ERROR, "Not a directory");
-    return;
+    return matchCount;
   }
-
+  
+  
   File file = root.openNextFile();
   while(file){
     if(file.isDirectory()){
       LOG(LOG_INFO, String("  DIR : ") + file.name());
       if(levels){
-        listDir(file.name(), levels -1);
+        matchCount += listDir(file.name(), levels -1,nameFilter);
       }
     } else {
       LOG(LOG_INFO, String("  FILE: ") + file.name() + "  SIZE: " + file.size());
+      // increase found file count by one
+        String fileName = file.name();
+        if(!nameFilter || fileName.indexOf(nameFilter) >= 0){matchCount++;};
     }
     file = root.openNextFile();
   }
+  return matchCount;
 }
 
 void mySdManager::createDir(const char * path){
-  LOG(LOG_INFO, String("Creating Dir: ") + path);
+  LOG(LOG_DEBUG, String("Creating Dir: ") + path);
   if(fs.mkdir(path)){
-    LOG(LOG_INFO, "Dir created");
+    LOG(LOG_DEBUG, "Dir created");
   } else {
-    LOG(LOG_ERROR, "mkdir failed");
+    LOG(LOG_ERROR, String("Failed creating Dir: ") + path);
   }
 }
 
 void mySdManager::removeDir(const char * path){
-  LOG(LOG_INFO, String("Removing Dir: ") + path);
+  LOG(LOG_DEBUG, String("Removing Dir: ") + path);
   if(fs.rmdir(path)){
-    LOG(LOG_INFO, "Dir removed");
+    LOG(LOG_DEBUG, "Dir removed");
   } else {
-    LOG(LOG_ERROR, "rmdir failed");
+    LOG(LOG_ERROR, String("Failed removing Dir: ") + path);
   }
 }
 
-void mySdManager::readFile(const char * path){
-  LOG(LOG_INFO, String("Reading file: ") + path);
+void mySdManager::serialPrintFile(const char * path){
+  LOG(LOG_DEBUG, String("Reading file: ") + path);
 
   File file = fs.open(path);
   if(!file){
-    LOG(LOG_ERROR, "Failed to open file for reading");
+    LOG(LOG_ERROR, String("Failed to open file for reading at path: ") + path);
     return;
   }
 
@@ -64,57 +70,57 @@ void mySdManager::readFile(const char * path){
   while(file.available()){
     content += (char)file.read();
   }
-  LOG(LOG_INFO, content);
+  LOG(LOG_DEBUG, content);
   file.close();
 }
 
 void mySdManager::writeFile(const char * path, const char * message){
-  LOG(LOG_INFO, String("Writing file: ") + path);
+  LOG(LOG_DEBUG, String("Writing file: ") + path);
 
   File file = fs.open(path, FILE_WRITE);
   if(!file){
-    LOG(LOG_ERROR, "Failed to open file for writing");
+    LOG(LOG_ERROR, String("Failed to open file for writing at path: ") + path);
     return;
   }
   if(file.print(message)){
-    LOG(LOG_INFO, "File written");
+    LOG(LOG_DEBUG, "File written");
   } else {
-    LOG(LOG_ERROR, "Write failed");
+    LOG(LOG_ERROR, String("Failed to write to file at path: ") + path);
   }
   file.close();
 }
 
 void mySdManager::appendFile(const char * path, const char * message){
-  LOG(LOG_INFO, String("Appending to file: ") + path);
+  LOG(LOG_DEBUG, String("Appending to file: ") + path);
 
   File file = fs.open(path, FILE_APPEND);
   if(!file){
-    LOG(LOG_ERROR, "Failed to open file for appending");
+    LOG(LOG_ERROR, String("Failed to open file for appending at path: ") + path);
     return;
   }
   if(file.print(message)){
-      LOG(LOG_INFO, "Message appended");
+      LOG(LOG_DEBUG, "Message appended");
   } else {
-    LOG(LOG_ERROR, "Append failed");
+    LOG(LOG_ERROR, String("Failed to append to file at path: ") + path);
   }
   file.close();
 }
 
 void mySdManager::renameFile(const char * path1, const char * path2){
-  LOG(LOG_INFO, String("Renaming file ") + path1 + " to " + path2);
+  LOG(LOG_DEBUG, String("Renaming file ") + path1 + " to " + path2);
   if (fs.rename(path1, path2)) {
-    LOG(LOG_INFO, "File renamed");
+    LOG(LOG_DEBUG, "File renamed");
   } else {
-    LOG(LOG_ERROR, "Rename failed");
+    LOG(LOG_ERROR, String("Failed renaming file ") + path1 + " to " + path2);
   }
 }
 
 void mySdManager::deleteFile(const char * path){
-  LOG(LOG_INFO, String("Deleting file: ") + path);
+  LOG(LOG_DEBUG, String("Deleting file: ") + path);
   if(fs.remove(path)){
-    LOG(LOG_INFO, "File deleted");
+    LOG(LOG_DEBUG, "File deleted");
   } else {
-    LOG(LOG_ERROR, "Delete failed");
+    LOG(LOG_ERROR, String("Failed deleting file at path: ") + path);
   }
 }
 
@@ -137,12 +143,12 @@ void mySdManager::testFileIO(const char * path){
     file.close();
     LOG(LOG_INFO, String(flen) + " bytes read in " + end + " ms");
   } else {
-    LOG(LOG_ERROR, "Failed to open file for reading");
+    LOG(LOG_ERROR, String("Failed to open file for reading at path: ") + path);
   }
 
   file = fs.open(path, FILE_WRITE);
   if(!file){
-    LOG(LOG_ERROR, "Failed to open file for writing");
+    LOG(LOG_ERROR, String("Failed to write to file at path: ") + path);
     return;
   }
 
@@ -159,7 +165,7 @@ void mySdManager::testFileIO(const char * path){
 bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) {
   File file = SD.open(path);
   if (!file) {
-    LOG(LOG_ERROR, "Failed to open file");
+    LOG(LOG_ERROR, String("Failed to open file at path: ") + path);
     return false;
   }
 
