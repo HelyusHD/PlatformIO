@@ -12,11 +12,11 @@ int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameF
 
   File root = fs.open(dirname);
   if(!root){
-    LOG(LOG_ERROR, "Failed to open directory");
+    LOG(LOG_ERROR, String("Failed to open directory ") + dirname);
     return matchCount;
   }
   if(!root.isDirectory()){
-    LOG(LOG_ERROR, "Not a directory");
+    LOG(LOG_ERROR, String("Not a directory ") + dirname);
     return matchCount;
   }
   
@@ -26,7 +26,10 @@ int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameF
     if(file.isDirectory()){
       LOG(LOG_INFO, String("  DIR : ") + file.name());
       if(levels){
-        matchCount += listDir(file.name(), levels -1,nameFilter);
+        String subdir = String(dirname);
+        if (!subdir.endsWith("/")) subdir += "/";
+        subdir += file.name();
+        matchCount += listDir(subdir.c_str(), levels - 1, nameFilter);
       }
     } else {
       LOG(LOG_INFO, String("  FILE: ") + file.name() + "  SIZE: " + file.size());
@@ -215,6 +218,10 @@ void sdTest(){
 
 // connects the SD card
 bool sdSetup(){
+  /*MOSI	GPIO 23
+    MISO	GPIO 19
+    SCK	  GPIO 18
+    CS	  defined below*/
   if(!SD.begin(5)){ // defines the CS pin
     Serial.println("Card Mount Failed");
     return false;

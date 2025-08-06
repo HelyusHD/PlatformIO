@@ -50,12 +50,15 @@ public:
   }
 
   // logs to SD
-  void log(LogLevel level, const String& message) {
+  void log(LogLevel level, const String& message, const char* file_name = nullptr, const int line = -1, const char* func = nullptr) {
     if (level < LOG_LEVEL_THRESHOLD) return;
 
     String levelStr = levelToString(level);
     String timestamp = getTimestamp();
     String logLine = "[" + timestamp + "] [" + levelStr + "] " + message;
+    if(file_name){logLine += String(" | in ") + file_name;}
+    if(line != -1){logLine += String(" :") + line;}
+    if(func){logLine += String(" in ") + func;}
 
     Serial.println(logLine);
 
@@ -152,6 +155,6 @@ private:
 };
 
 extern MyLogger* logger;
-#define LOG(level, msg) logger->log(level, String(msg))
+#define LOG(level, msg) logger->log(level, String(msg), __FILE__, __LINE__, __func__)
 
 #endif  // MY_LOG_H
