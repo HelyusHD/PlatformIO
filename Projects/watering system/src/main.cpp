@@ -91,7 +91,7 @@ void mySdManager::writeFile(const char * path, const char * message){
 }
 
 void mySdManager::appendFile(const char * path, const char * message){
-  LOG(LOG_DEBUG, String("Appending to file: ") + path);
+  LOG(LOG_DEBUG, String("Appending to file: ") + path + "\n\tmessage//:" + String(message) + "//message end");
 
   File file = fs.open(path, FILE_APPEND);
   if(!file){
@@ -175,23 +175,22 @@ bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) {
   return true;
 }
 
-MyLogger logger(SD);
 mySdManager SdM(SD);
+//MyLogger logger(SdM);
+MyLogger* logger = nullptr;
+
 
 bool sdSetup(){
   if(!SD.begin(5)){
-    LOG(LOG_ERROR, "Card Mount Failed");
+    Serial.println("Card Mount Failed");
     return false;
   }
   uint8_t cardType = SD.cardType();
 
   if(cardType == CARD_NONE){
-    LOG(LOG_ERROR, "No SD card attached");
+    Serial.println("No SD card attached");
     return false;
   }
-
-  //static MyLogger logger(SD);
-  logger.init();
 
   String cardTypeStr = "SD Card Type: ";
   switch (cardType) {
@@ -200,12 +199,15 @@ bool sdSetup(){
     case CARD_SDHC: cardTypeStr += "SDHC"; break;
     default:        cardTypeStr += "UNKNOWN"; break;
   }
-  LOG(LOG_INFO, cardTypeStr);
+  Serial.println(cardTypeStr);
 
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-  LOG(LOG_INFO, String("SD Card Size: ") + cardSize + "MB");
+  Serial.println(String("SD Card Size: ") + cardSize + "MB");
 
-  //static mySdManager SdM(SD);
+  //static MyLogger logger(SD);
+  logger = new MyLogger(SdM);
+  logger->init();
+
 
   SdM.listDir("/", 5);
   SdM.createDir("/csv");

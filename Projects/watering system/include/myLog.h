@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <time.h>
 #include <WiFi.h>
+#include <mySdManager.h>
 
 
 // used to define debug level
@@ -22,18 +23,19 @@ enum LogLevel {
 class MyLogger {
 public:
   // binds logger to a csPin. Thats a connection on the SD module used to transfere data
-  MyLogger(fs::FS& fs_) : fs(fs_) {}
+  MyLogger(mySdManager& SdM_) : SdM(SdM_) {}
 
   // requires WiFi connection already active
   // will load the time and date from a server
   void init(const char* ntpServer = "pool.ntp.org") {
     Serial.println("SUCCESS: Logging to SD");
     sdAvailable = true;
-    fs.remove(LOG_FILE_PATH);
+    //SdM.deleteFile(LOG_FILE_PATH);
 
     configTime(0, 0, ntpServer);
     setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
     tzset();
+
   }
 
   // logs to SD
@@ -47,7 +49,7 @@ public:
     Serial.println(logLine);
 
     if (sdAvailable) {
-      File file = fs.open(LOG_FILE_PATH, FILE_APPEND);
+      File file = SdM.getFS().open(LOG_FILE_PATH, FILE_APPEND);
       if (file) {
         file.println(logLine);
         file.close();
@@ -57,7 +59,7 @@ public:
 
 private:
   bool sdAvailable = false;
-  fs::FS &fs;
+  mySdManager &SdM;
 
   String levelToString(LogLevel level) {
     switch (level) {
@@ -82,7 +84,7 @@ private:
   }
 };
 
-extern MyLogger logger;
-#define LOG(level, msg) logger.log(level, String(msg))
+extern MyLogger* logger;
+#define LOG(level, msg) logger->log(level, String(msg))
 
 #endif  // MY_LOG_H

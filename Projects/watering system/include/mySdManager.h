@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "SD.h"
-#include <myLog.h>
 
 #ifndef MY_SD_MANAGER
 #define MY_SD_MANAGER
@@ -25,16 +24,19 @@
         void renameFile(const char * path1, const char * path2);   // Moves or renames a file from "path1" to "path2"
         void deleteFile(const char * path);                        // Deletes the file at "path"
         void testFileIO(const char * path);                        // Benchmarks read/write speed and logs the result
+        fs::FS& getFS() {
+            return fs;
+        }
     };
     
     mySdManager::mySdManager(fs::FS &fs_)
         : fs(fs_) //saves parameters in properties
     {
-        LOG(LOG_DEBUG,"Created SdManager");
+        Serial.println("Created SdManager");
     }
     mySdManager::~mySdManager()
     {
-        LOG(LOG_DEBUG,"Destroyed SdManager");
+       Serial.println("Destroyed SdManager");
     }
     
 #endif
