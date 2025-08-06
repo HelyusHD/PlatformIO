@@ -17,7 +17,7 @@ enum LogLevel {
   LOG_NONE
 };
 
-#define LOG_FILE_PATH "/log.txt" // file path on SD card where the log gets stored
+#define LOG_DIR "/logs" // file path on SD card where the log gets stored
 #define LOG_LEVEL_THRESHOLD LOG_DEBUG // configuration for the used debug level
 
 class MyLogger {
@@ -30,12 +30,23 @@ public:
   void init(const char* ntpServer = "pool.ntp.org") {
     Serial.println("SUCCESS: Logging to SD");
     sdAvailable = true;
-    //SdM.deleteFile(LOG_FILE_PATH);
 
     configTime(0, 0, ntpServer);
     setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
     tzset();
 
+    // Ensure /logs directory exists
+    SdM.createDir(LOG_DIR);
+    logFilePath = String(LOG_DIR) + "/log.txt";
+
+    // Rotate existing log file
+    if (SdM.getFS().exists(logFilePath)) {
+      //String timestamp = getDateOnly(); // YYYY-MM-DD
+      String archivePath = String(LOG_DIR) + "/log_" + getTimestampForFilename() + ".txt";
+      SdM.renameFile(logFilePath.c_str(), archivePath.c_str());
+    }
+
+    cleanupOldLogs(7); // Deletes logs older than 7 days
   }
 
   // logs to SD
@@ -49,7 +60,7 @@ public:
     Serial.println(logLine);
 
     if (sdAvailable) {
-      File file = SdM.getFS().open(LOG_FILE_PATH, FILE_APPEND);
+      File file = SdM.getFS().open(logFilePath, FILE_APPEND);
       if (file) {
         file.println(logLine);
         file.close();
@@ -60,6 +71,7 @@ public:
 private:
   bool sdAvailable = false;
   mySdManager &SdM;
+  String logFilePath;
 
   String levelToString(LogLevel level) {
     switch (level) {
@@ -81,6 +93,61 @@ private:
       // fallback to seconds since boot
       return String(millis() / 1000) + "s";
     }
+  }
+
+  String getTimestampForFilename() {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      char buf[32];
+      strftime(buf, sizeof(buf), "%Y-%m-%d_%H-%M-%S", &timeinfo);
+      return String(buf);
+    }
+    return "unknown";
+  }
+
+  String getDateOnly() {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      char buf[11];
+      strftime(buf, sizeof(buf), "%Y-%m-%d", &timeinfo);
+      return String(buf);
+    }
+    return "unknown";
+  }
+
+  void cleanupOldLogs(int maxDays) {
+    File root = SdM.getFS().open(LOG_DIR);
+    if (!root || !root.isDirectory()) return;
+
+    File file = root.openNextFile();
+    while (file) {
+      String name = file.name();
+      int logPrefixIndex = name.indexOf("/log_");
+      if (logPrefixIndex >= 0 && name.endsWith(".txt")) {
+        String timestampPart = name.substring(logPrefixIndex + 5);  // after "log_"
+        int dotIndex = timestampPart.lastIndexOf(".txt");
+        if (dotIndex > 0) {
+          timestampPart = timestampPart.substring(0, dotIndex); // remove ".txt"
+          String dateOnly = timestampPart.substring(0, 10);     // YYYY-MM-DD
+          if (isOlderThan(dateOnly, maxDays)) {
+            SdM.deleteFile(name.c_str());
+          }
+        }
+      }
+      file = root.openNextFile();
+    }
+  }
+
+  bool isOlderThan(const String& dateStr, int days) {
+    struct tm fileDate = {};
+    strptime(dateStr.c_str(), "%Y-%m-%d", &fileDate);
+    time_t fileTime = mktime(&fileDate);
+
+    time_t now;
+    time(&now);
+
+    double seconds = difftime(now, fileTime);
+    return (seconds > days * 86400);
   }
 };
 
