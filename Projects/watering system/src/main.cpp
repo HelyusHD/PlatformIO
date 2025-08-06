@@ -207,10 +207,10 @@ void sdTest(){
     }
   }
 
-  SdM.testFileIO("/ioTest.txt");
+  //SdM.testFileIO("/ioTest.txt");
   
-  LOG(LOG_INFO, String("Total space: ") + (SD.totalBytes() / (1024 * 1024)) + "MB");
-  LOG(LOG_INFO, String("Used space: ") + (SD.usedBytes() / (1024 * 1024)) + "MB");
+  //LOG(LOG_INFO, String("Total space: ") + (SD.totalBytes() / (1024 * 1024)) + "MB");
+  //LOG(LOG_INFO, String("Used space: ") + (SD.usedBytes() / (1024 * 1024)) + "MB");
 }
 
 // connects the SD card
@@ -246,11 +246,15 @@ bool sdSetup(){
 
 void setup(){
   Serial.begin(115200);
+  pinMode(17, OUTPUT);  // Set GPIO 17 as output for LED
+  digitalWrite(17, LOW);  // LED OFF
 
   wifiSetup();
 
   sdSetup();
   sdTest();
+  digitalWrite(17, HIGH); // LED ON
 }
 
-void loop(){}
+void loop(){
+}
