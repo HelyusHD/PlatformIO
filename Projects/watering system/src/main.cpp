@@ -125,12 +125,29 @@ void mySdManager::deleteFile(const char * path){
 }
 
 void mySdManager::testFileIO(const char * path){
-  File file = fs.open(path);
+  File file = fs.open(path, FILE_WRITE);
   static uint8_t buf[512];
   size_t len = 0;
   uint32_t start = millis();
   uint32_t end = start;
-  if(file){
+
+  if(!file){
+    LOG(LOG_ERROR, String("Failed to write to file at path: ") + path);
+    return;
+  }
+  size_t i;
+  start = millis();
+  for(i = 0; i < 2048; i++){
+    file.write(buf, 512);
+  }
+  end = millis() - start;
+  file.close();
+  LOG(LOG_INFO, String(2048 * 512) + " bytes written in " + end + " ms");
+
+  file = fs.open(path, FILE_READ);
+  if(!file){
+    LOG(LOG_ERROR, String("Failed to open file for reading at path: ") + path);
+  } else {
     len = file.size();
     size_t flen = len;
     start = millis();
@@ -142,27 +159,10 @@ void mySdManager::testFileIO(const char * path){
     end = millis() - start;
     file.close();
     LOG(LOG_INFO, String(flen) + " bytes read in " + end + " ms");
-  } else {
-    LOG(LOG_ERROR, String("Failed to open file for reading at path: ") + path);
   }
-
-  file = fs.open(path, FILE_WRITE);
-  if(!file){
-    LOG(LOG_ERROR, String("Failed to write to file at path: ") + path);
-    return;
-  }
-
-  size_t i;
-  start = millis();
-  for(i = 0; i < 2048; i++){
-    file.write(buf, 512);
-  }
-  end = millis() - start;
-  file.close();
-  LOG(LOG_INFO, String(2048 * 512) + " bytes written in " + end + " ms");
 }
 
-bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) {
+bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) { // reads a file at "path" and stores the string at char buffer[maxLen], returns true if succesfull
   File file = SD.open(path);
   if (!file) {
     LOG(LOG_ERROR, String("Failed to open file at path: ") + path);
@@ -175,13 +175,47 @@ bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) {
   return true;
 }
 
-mySdManager SdM(SD);
-//MyLogger logger(SdM);
-MyLogger* logger = nullptr;
+mySdManager SdM(SD); // a handy tool to manage the SD file system
+MyLogger* logger = nullptr; /* already reserves memory for the logger, but before we initiate it, we have to connect to the SD
+                            Later we use "logger = new MyLogger(SdM);" to write a configurated logger to that same memory which then correctly reffers to the SdM*/
 
+// connects to home network
+void wifiSetup(){
+  WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+}
 
+// example use of the SD
+void sdTest(){
+  SdM.listDir("/", 5);
+  SdM.createDir("/csv");
+  const char * csv_str = 
+    "my_strings,my_numbers\n"
+    "hello,5\n"
+    "world,10\n";
+  SdM.writeFile("/csv/first.csv", csv_str);
+  char content[256];
+  if (readFileToBuffer("/csv/first.csv", content, sizeof(content))){
+    CSV_Parser cp(content, "sL");
+    LOG(LOG_INFO, "Accessing values by column name:");
+    char **strings = (char**)cp["my_strings"];
+    int32_t *numbers = (int32_t*)cp["my_numbers"];
+    
+    for(int row = 0; row < cp.getRowsCount(); row++) {
+      LOG(LOG_INFO, String(row) + ". String = " + strings[row]);
+      LOG(LOG_INFO, String(row) + ". Number = " + numbers[row]);
+    }
+  }
+
+  SdM.testFileIO("/ioTest.txt");
+  
+  LOG(LOG_INFO, String("Total space: ") + (SD.totalBytes() / (1024 * 1024)) + "MB");
+  LOG(LOG_INFO, String("Used space: ") + (SD.usedBytes() / (1024 * 1024)) + "MB");
+}
+
+// connects the SD card
 bool sdSetup(){
-  if(!SD.begin(5)){
+  if(!SD.begin(5)){ // defines the CS pin
     Serial.println("Card Mount Failed");
     return false;
   }
@@ -204,43 +238,19 @@ bool sdSetup(){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   Serial.println(String("SD Card Size: ") + cardSize + "MB");
 
-  //static MyLogger logger(SD);
   logger = new MyLogger(SdM);
   logger->init();
 
-
-  SdM.listDir("/", 5);
-  SdM.createDir("/csv");
-  const char * csv_str = 
-    "my_strings,my_numbers\n"
-    "hello,5\n"
-    "world,10\n";
-  SdM.writeFile("/csv/first.csv", csv_str);
-  char content[256];
-  if (readFileToBuffer("/csv/first.csv", content, sizeof(content))){
-    CSV_Parser cp(content, "sL");
-    LOG(LOG_INFO, "Accessing values by column name:");
-    char **strings = (char**)cp["my_strings"];
-    int32_t *numbers = (int32_t*)cp["my_numbers"];
-    
-    for(int row = 0; row < cp.getRowsCount(); row++) {
-      LOG(LOG_INFO, String(row) + ". String = " + strings[row]);
-      LOG(LOG_INFO, String(row) + ". Number = " + numbers[row]);
-    }
-  }
-
-  LOG(LOG_INFO, String("Total space: ") + (SD.totalBytes() / (1024 * 1024)) + "MB");
-  LOG(LOG_INFO, String("Used space: ") + (SD.usedBytes() / (1024 * 1024)) + "MB");
   return true;
 }
 
 void setup(){
   Serial.begin(115200);
 
-  WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) delay(500);
+  wifiSetup();
 
   sdSetup();
+  sdTest();
 }
 
 void loop(){}
