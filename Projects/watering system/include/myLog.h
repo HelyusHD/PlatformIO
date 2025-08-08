@@ -2,10 +2,8 @@
 #define MY_LOG_H
 
 #include <Arduino.h>
-#include <SD.h>
 #include <time.h>
-#include <WiFi.h>
-#include <mySdManager.h>
+#include <MySdManager.h>
 
 
 // used to define debug level
@@ -18,31 +16,32 @@ enum LogLevel {
 };
 
 #define LOG_DIR "/logs" // file path on SD card where the log gets stored
+#define OFFLINE_LOG_DIR "/logs/offline_log.txt"
 #define LOG_LEVEL_THRESHOLD LOG_DEBUG // configuration for the used debug level
 
 class MyLogger {
 public:
   // binds logger to a csPin. Thats a connection on the SD module used to transfere data
-  MyLogger(mySdManager& SdM_) : SdM(SdM_) {}
+  MyLogger(MySdManager& SdM_) : SdM(SdM_) {}
 
   // requires WiFi connection already active
   // will load the time and date from a server
-  void init(const char* ntpServer = "pool.ntp.org") {
-    Serial.println("SUCCESS: Logging to SD");
-    sdAvailable = true;
+  void initFilePath() {
+    // Ensure /logs directory exists
+    SdM.createDir(LOG_DIR);
+    logFilePath = String(LOG_DIR) + "/log.txt";
+  }
 
+  void initDate(const char* ntpServer = "pool.ntp.org"){
     configTime(0, 0, ntpServer);
     setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
     tzset();
 
-    // Ensure /logs directory exists
-    SdM.createDir(LOG_DIR);
-    logFilePath = String(LOG_DIR) + "/log.txt";
-
     // Rotate existing log file
     if (SdM.getFS().exists(logFilePath)) {
-      //String timestamp = getDateOnly(); // YYYY-MM-DD
+      Serial.println("SUCCESS: Logging to SD");
       String archivePath = String(LOG_DIR) + "/log_" + getTimestampForFilename() + ".txt";
+      online = true;
       SdM.renameFile(logFilePath.c_str(), archivePath.c_str());
     }
 
@@ -51,6 +50,10 @@ public:
 
   // logs to SD
   void log(LogLevel level, const String& message, const char* file_name = nullptr, const int line = -1, const char* func = nullptr) {
+    if (!online){
+      offlineLog(level, message, file_name, line, func);
+      return;
+    }
     if (level < LOG_LEVEL_THRESHOLD) return;
 
     String levelStr = levelToString(level);
@@ -62,7 +65,7 @@ public:
 
     Serial.println(logLine);
 
-    if (sdAvailable) {
+    if (online) {
       File file = SdM.getFS().open(logFilePath, FILE_APPEND);
       if (file) {
         file.println(logLine);
@@ -71,9 +74,27 @@ public:
     }
   }
 
+  void offlineLog(LogLevel level, const String& message, const char* file_name = nullptr, const int line = -1, const char* func = nullptr){
+    if (level < LOG_LEVEL_THRESHOLD) return;
+
+    String levelStr = levelToString(level);
+    String logLine = "[offline] [" + levelStr + "] " + message;
+    if(file_name){logLine += String(" | in ") + file_name;}
+    if(line != -1){logLine += String(" :") + line;}
+    if(func){logLine += String(" in ") + func;}
+
+    Serial.println(logLine);
+
+    File file = SdM.getFS().open(OFFLINE_LOG_DIR, FILE_APPEND);
+    if (file) {
+      file.println(logLine);
+      file.close();
+    }
+  }
+
 private:
-  bool sdAvailable = false;
-  mySdManager &SdM;
+  bool online = false;
+  MySdManager &SdM;
   String logFilePath;
 
   String levelToString(LogLevel level) {
@@ -156,5 +177,6 @@ private:
 
 extern MyLogger* logger;
 #define LOG(level, msg) logger->log(level, String(msg), __FILE__, __LINE__, __func__)
+#define OFFLINE_LOG(level, msg) logger->offlineLog(level, String(msg), __FILE__, __LINE__, __func__)
 
 #endif  // MY_LOG_H
