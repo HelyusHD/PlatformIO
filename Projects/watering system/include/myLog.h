@@ -17,7 +17,7 @@ enum LogLevel {
 
 #define LOG_DIR "/logs" // file path on SD card where the log gets stored
 #define LOG_LEVEL_THRESHOLD LOG_DEBUG // configuration for the used debug level
-
+#define TRACEBACK_LOG_LEVEL_THRESHOLD LOG_ERROR // traceback will only log when at least at this debug level
 class MyLogger {
 public:
   // binds logger to a csPin. Thats a connection on the SD module used to transfere data
@@ -63,9 +63,12 @@ public:
       timestamp = "offline";
     }
     String logLine = "[" + timestamp + "] [" + levelStr + "] " + message;
-    if(file_name){logLine += String(" | in ") + file_name;}
-    if(line != -1){logLine += String(" :") + line;}
-    if(func){logLine += String(" in ") + func;}
+
+    if (level >= TRACEBACK_LOG_LEVEL_THRESHOLD){
+      if(file_name){logLine += String(" | in ") + file_name;}
+      if(line != -1){logLine += String(" :") + line;}
+      if(func){logLine += String(" in ") + func;}
+    }
 
     Serial.println(logLine);
 
