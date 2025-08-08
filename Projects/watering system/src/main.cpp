@@ -4,17 +4,23 @@
 #include <mySdManager.h>
 #include <myServer.h>
 
-int MySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter){
-  LOG(LOG_INFO, String("Listing directory: ") + dirname);
+int MySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter, int depths){
+  if (depths == 0) LOG(LOG_INFO, String("Listing directory: ") + dirname);
+
   int matchCount = 0;
+
+  String tabs = "";
+  for (int i=0; i < depths; i++){
+    tabs += "  ";
+  }
 
   File root = fs.open(dirname);
   if(!root){
-    LOG(LOG_ERROR, String("Failed to open directory ") + dirname);
+    LOG(LOG_ERROR, tabs + String("Failed to open directory ") + dirname);
     return matchCount;
   }
   if(!root.isDirectory()){
-    LOG(LOG_ERROR, String("Not a directory ") + dirname);
+    LOG(LOG_ERROR, tabs + String("Not a directory ") + dirname);
     return matchCount;
   }
   
@@ -22,15 +28,15 @@ int MySdManager::listDir(const char * dirname, uint8_t levels, const char* nameF
   File file = root.openNextFile();
   while(file){
     if(file.isDirectory()){
-      LOG(LOG_INFO, String("  DIR : ") + file.name());
+      LOG(LOG_INFO, tabs + String("  DIR : ") + file.name());
       if(levels){
         String subdir = String(dirname);
         if (!subdir.endsWith("/")) subdir += "/";
         subdir += file.name();
-        matchCount += listDir(subdir.c_str(), levels - 1, nameFilter);
+        matchCount += listDir(subdir.c_str(), levels - 1, nameFilter, depths+1);
       }
     } else {
-      LOG(LOG_INFO, String("  FILE: ") + file.name() + "  SIZE: " + file.size());
+      LOG(LOG_INFO, tabs + String("  FILE: ") + file.name() + "  SIZE: " + file.size());
       // increase found file count by one
         String fileName = file.name();
         if(!nameFilter || fileName.indexOf(nameFilter) >= 0){matchCount++;};

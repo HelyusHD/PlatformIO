@@ -13,7 +13,7 @@
         MySdManager(fs::FS &fs_);
         ~MySdManager();
 
-        int listDir(const char * dirname, uint8_t levels, const char* nameFilter = nullptr);    /*  Lists all directories and files recursively, up to "levels" deep.
+        int listDir(const char * dirname, uint8_t levels, const char* nameFilter = nullptr, int depths = 0);    /*  Lists all directories and files recursively, up to "levels" deep.
                                                                                                     - nameFilter is an optional parameter.
                                                                                                     - Returns the number of files whose names include "nameFilter".
                                                                                                     - If no nameFilter is given, counts all files.
