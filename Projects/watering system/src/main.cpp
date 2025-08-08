@@ -11,7 +11,7 @@ int MySdManager::listDir(const char * dirname, uint8_t levels, const char* nameF
 
   String tabs = "";
   for (int i=0; i < depths; i++){
-    tabs += "  ";
+    tabs += "    ";
   }
 
   File root = fs.open(dirname);
