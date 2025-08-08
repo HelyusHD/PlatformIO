@@ -29,13 +29,15 @@ public:
     // Ensure /logs directory exists
     SdM.getFS().mkdir(LOG_DIR);
     logFilePath = String(LOG_DIR) + "/log.txt";
+    if (SdM.getFS().exists(logFilePath)) {
+      Serial.println("SUCCESS: Logging to SD");
+    }
   }
 
   void initDate(const char* ntpServer = "pool.ntp.org"){
     configTime(0, 0, ntpServer);
     setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
     tzset();
-    Serial.println("SUCCESS: Logging to SD");
     online = true;
     // Rotate existing log file
     if (SdM.getFS().exists(logFilePath)) {

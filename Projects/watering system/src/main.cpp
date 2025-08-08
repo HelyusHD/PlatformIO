@@ -248,21 +248,27 @@ void setup(){
   Serial.begin(115200);
 
   // connecting to SD
-  sdSetup();
+  if (!sdSetup()){
+    delay(1000);
+    ESP.restart(); // full reset
+  }else{
+    // starting to log on the SD
+    // until there is a internet connection, it will log in a "offline_log" file
+    logger = new MyLogger(sdM);
+    logger->initFilePath(); // tells the logger where the SD is
+    LOG(LOG_WARN,"#########################################");
+    LOG(LOG_WARN,"#########       RESTARTED       #########");
+    LOG(LOG_WARN,"#########################################");
 
-  // starting to log on the SD
-  // until there is a internet connection, it will log in a "offline_log" file
-  logger = new MyLogger(sdM);
-  logger->initFilePath(); // tells the logger where the SD is
+    // connecting to home network using a DNS name
+    server.connectToNetwork("water");
 
-  // connecting to home network using a DNS name
-  server.connectToNetwork("water");
+    // the logger can now use the real time and update the last log
+    logger->initDate();
 
-  // the logger can now use the real time and update the last log
-  logger->initDate();
-
-  // debug function to test if SD works
-  sdTest();
+    // debug function to test if SD works
+    sdTest();
+  }
 }
 
 void loop(){
