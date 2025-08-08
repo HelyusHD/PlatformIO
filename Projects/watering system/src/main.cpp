@@ -268,6 +268,7 @@ void setup(){
 
     // connecting to home network using a DNS name
     server.connectToNetwork("water");
+    server.webserver.begin();
 
     // the logger can now use the real time and update the last log
     logger->initDate();
