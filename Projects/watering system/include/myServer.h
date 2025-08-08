@@ -1,28 +1,49 @@
-#include <networkConfig.h>
 #include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <ESPmDNS.h>
+#include <mySdManager.h>
+#include <networkConfig.h>
+#include <myLog.h>
 
-#ifndef SERVER
-#define SERVER
-    /*
-    is the access point (hosts the network)
-    hosts the webserver
-    will store config data for clients
-    will log all clinets and their data
-    */
-    class myServer
-    {
-    private:
-        const char* apPassword = ESP_NETWORK_PASSWORD;
-        const char* ssid = ESP_NETWORK_SSID;
-        WiFiServer server; // server from <WiFi.h>
-        TaskHandle_t Task1; // required for dedicated core
-        static void handleUiClient(void * parameter); // hosts the webserver (UI side)
-        int data = 0;
-    public:
-        myServer(/* args */);
-        ~myServer();
-        int apSetup();
-        void loadTestData();
-        void printTestData();
+#ifndef MY_SERVER
+#define MY_SERVER
+
+    
+
+    class MyServer{
+        private:
+            MySdManager& sdM;
+            AsyncWebServer server;
+        public:
+            MyServer(MySdManager& _sdM);
+            ~MyServer();
+            void connectToNetwork(const char* dnsName = "test_server"); // connecting to an existing network using a DNS name
+            void setupRoutes(){
+                int a = 1;
+            }
+
     };
+
+    MyServer::MyServer(MySdManager& _sdM)
+        : sdM(_sdM), server(80){}
+    
+    MyServer::~MyServer(){}
+
+    void MyServer::connectToNetwork(const char* dnsName){
+        // connecting to home network
+        LOG(LOG_INFO,String("connecting to network: ") + HOME_NETWORK_SSID);
+        WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            LOG(LOG_INFO,"waiting for connection");
+        }
+        LOG(LOG_INFO,String("successfully connected to network: ") + HOME_NETWORK_SSID);
+
+        // using mDNS to allow a dynamic IP
+        if (MDNS.begin(dnsName)) {  // no ".local" here
+            LOG(LOG_INFO, "mDNS responder started");
+        }
+    }
+
+    
 #endif
