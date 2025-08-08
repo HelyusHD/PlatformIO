@@ -1,15 +1,17 @@
 #include <Arduino.h>
 #include "SD.h"
+#include "SPI.h"
+#include "FS.h"
 
 #ifndef MY_SD_MANAGER
 #define MY_SD_MANAGER
-    class mySdManager
+    class MySdManager
     {
     private:
         fs::FS &fs;
     public:
-        mySdManager(fs::FS &fs_);
-        ~mySdManager();
+        MySdManager(fs::FS &fs_);
+        ~MySdManager();
 
         int listDir(const char * dirname, uint8_t levels, const char* nameFilter = nullptr);    /*  Lists all directories and files recursively, up to "levels" deep.
                                                                                                     - nameFilter is an optional parameter.
@@ -24,17 +26,18 @@
         void renameFile(const char * path1, const char * path2);   // Moves or renames a file from "path1" to "path2"
         void deleteFile(const char * path);                        // Deletes the file at "path"
         void testFileIO(const char * path);                        // Benchmarks read/write speed and logs the result
+        bool readFileToBuffer(const char* path, char* buffer, size_t maxLen);
         fs::FS& getFS() {
             return fs;
         }
     };
     
-    mySdManager::mySdManager(fs::FS &fs_)
+    MySdManager::MySdManager(fs::FS &fs_)
         : fs(fs_) //saves parameters in properties
     {
         Serial.println("Created SdManager");
     }
-    mySdManager::~mySdManager()
+    MySdManager::~MySdManager()
     {
        Serial.println("Destroyed SdManager");
     }
