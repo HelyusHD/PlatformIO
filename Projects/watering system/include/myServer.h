@@ -31,17 +31,17 @@
 
     void MyServer::connectToNetwork(const char* dnsName){
         // connecting to home network
-        LOG(LOG_INFO,String("connecting to network: ") + HOME_NETWORK_SSID);
+        LOG(LOG_DEBUG,String("connecting to network: ") + HOME_NETWORK_SSID);
         WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
         while (WiFi.status() != WL_CONNECTED) {
             delay(500);
-            LOG(LOG_INFO,"waiting for connection");
+            LOG(LOG_DEBUG,"waiting for connection");
         }
         LOG(LOG_INFO,String("successfully connected to network: ") + HOME_NETWORK_SSID);
 
         // using mDNS to allow a dynamic IP
         if (MDNS.begin(dnsName)) {  // no ".local" here
-            LOG(LOG_INFO, "mDNS responder started");
+            LOG(LOG_DEBUG, String("mDNS name: ") + dnsName);
         }
     }
 
