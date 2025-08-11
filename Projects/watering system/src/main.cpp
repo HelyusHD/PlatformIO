@@ -279,4 +279,5 @@ void setup(){
 }
 
 void loop(){
+  server.webserver.tick();
 }

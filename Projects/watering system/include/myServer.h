@@ -1,41 +1,48 @@
-#include <WiFi.h>
-#include <ESPAsyncWebServer.h>
-#include <ESPmDNS.h>
+#include <WiFi.h> //connecting to network
+#include <ESPAsyncWebServer.h> //webserver that can load directly from SD without loading into RAM
+#include <ESPmDNS.h> //simple DNS
 #include <mySdManager.h>
-#include <networkConfig.h>
+#include <networkConfig.h> // passwords and stuff
 #include <myLog.h>
+#include <AsyncTCP.h> // for live broadcasting values
 
 #ifndef MY_SERVER
 #define MY_SERVER
-
+    // responsible for the webserver
     class MyWebserver{
         private:
             AsyncWebServer server;
+            AsyncWebSocket ws;
             fs::FS &fs;
+
+            uint32_t last = 0;
 
             void setupRoutesFromSD();   // defines what file should be hosted
         public:
             MyWebserver(fs::FS& _fs)
-                : server(80), fs(_fs){}
+                : server(80), ws("/ws"), fs(_fs){}
 
             ~MyWebserver(){}
 
-            void begin(){   // starts the webserver
-                setupRoutesFromSD();
-                server.begin();
-                LOG(LOG_INFO,"launched webserver");
-            };
+            void begin();   // starts the webserver
+
+            volatile int someValue = 0; // test value for websocket
+            void broadcastValue() {ws.textAll(String(someValue));} // send to all connected clients
+            void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
+            void tick();
     };
 
-    // handles Wifi connection
+    // Wifi connection
     class MyServer{
         private:
             MySdManager& sdM;
         public:
             MyWebserver webserver;
-            MyServer(MySdManager& _sdM);    // creates a MyServer and initiates MySdManager and MyWebserver
 
-            ~MyServer();
+            MyServer(MySdManager& _sdM)
+            : sdM(_sdM), webserver(_sdM.getFS()) {}    // creates a MyServer and initiates MySdManager and MyWebserver
+
+            ~MyServer(){};
 
             void connectToNetwork(const char* dnsName = "test_server"); // connecting to an existing network using a DNS name
             void setupRoutes(){
@@ -43,33 +50,62 @@
             }
     };
 
+    void MyWebserver::tick(){
+        ws.cleanupClients();
+        // Example: update every second
+        if (millis() - last > 1000) {
+            last = millis();
+            someValue++;
+            broadcastValue();
+        }
+    }
 
+    void MyWebserver::begin(){
+        setupRoutesFromSD();
+
+        ws.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+            this->onWsEvent(server, client, type, arg, data, len);
+        });
+        server.addHandler(&ws);
+
+        server.begin();
+        LOG(LOG_INFO,"launched webserver");
+    }
 
     void MyWebserver::setupRoutesFromSD(){
-            // 1) Serve everything; default = index.html
-            server.serveStatic("/", fs, "/") // will look for files in "/"
-                    .setDefaultFile("index.html")
-                    .setCacheControl("max-age=3600");   // tweak as you like
+        // Serve everything; default = index.html
+        server.serveStatic("/", fs, "/") // will look for files in "/"
+                .setDefaultFile("index.html")
+                .setCacheControl("max-age=3600");   // tweak as you like
 
-            // 2) Optional: /page -> /
-            server.on("/page", HTTP_GET, [](AsyncWebServerRequest* req){
-                req->redirect("/");
-            });
+        // routs /page to /
+        server.on("/page", HTTP_GET, [](AsyncWebServerRequest* req){
+            req->redirect("/");
+        });
 
-            // 3) Helpful 404 (also covers weird paths)
-            server.onNotFound([this](AsyncWebServerRequest* req){
-                String path = req->url();
-                if (path.endsWith("/")) path += "index.html";
-                if (fs.exists(path))     req->send(fs, path, String());
-                else                     req->send(404, "text/plain", "Not found");
-            });
-            }
+        // error 404 fallback
+        server.onNotFound([this](AsyncWebServerRequest* req){
+            String path = req->url();
+            if (path.endsWith("/")) path += "index.html";
+            if (fs.exists(path))     req->send(fs, path, String());
+            else                     req->send(404, "text/plain", "Not found");
+        });
+        }
 
-    MyServer::MyServer(MySdManager& _sdM)
-        : sdM(_sdM), webserver(_sdM.getFS()) {}
+    void MyWebserver::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+        if (type == WS_EVT_CONNECT) {
+            Serial.printf("Client %u connected\n", client->id());
+            client->text(String(someValue)); // send current value immediately
+        }
+        else if (type == WS_EVT_DISCONNECT) {
+            Serial.printf("Client %u disconnected\n", client->id());
+        }
+        else if (type == WS_EVT_DATA) {
+            String msg((char*)data, len);
+            Serial.printf("Got message: %s\n", msg.c_str());
+        }
+    }
     
-    MyServer::~MyServer(){}
-
     void MyServer::connectToNetwork(const char* dnsName){
         // connecting to home network
         LOG(LOG_DEBUG,String("connecting to network: ") + HOME_NETWORK_SSID);

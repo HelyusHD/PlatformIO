@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+<body>
+  <div>Value: <span id="v">--</span></div>
+  <script>
+    const v = document.getElementById('v');
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.onmessage = e => v.textContent = e.data;
+  </script>
+</body>
+</html>
