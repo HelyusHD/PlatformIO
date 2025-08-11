@@ -1,11 +1,17 @@
 <!doctype html>
 <html>
 <body>
-  <div>Value: <span id="v">--</span></div>
+  <div>Number: <span id="num"></span></div>
+  <div>Text: <span id="txt"></span></div>
   <script>
-    const v = document.getElementById('v');
+    const num = document.getElementById('num');
+    const txt = document.getElementById('txt');
     const ws = new WebSocket(`ws://${location.host}/ws`);
-    ws.onmessage = e => v.textContent = e.data;
+    ws.onmessage = e => {
+      const data = JSON.parse(e.data);
+      num.textContent = data.number;
+      txt.textContent = data.text;
+    };
   </script>
 </body>
 </html>

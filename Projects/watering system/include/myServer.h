@@ -8,15 +8,20 @@
 
 #ifndef MY_SERVER
 #define MY_SERVER
+
+    struct MyData { // test data
+        int number;
+        char text[100];
+    };
+
     // responsible for the webserver
     class MyWebserver{
         private:
-            AsyncWebServer server;
-            AsyncWebSocket ws;
-            fs::FS &fs;
+            AsyncWebServer server; // webserver
+            AsyncWebSocket ws; // websocket
+            fs::FS &fs; // file system
 
-            uint32_t last = 0;
-
+            uint32_t last = 0; // counter
             void setupRoutesFromSD();   // defines what file should be hosted
         public:
             MyWebserver(fs::FS& _fs)
@@ -27,7 +32,7 @@
             void begin();   // starts the webserver
 
             volatile int someValue = 0; // test value for websocket
-            void broadcastValue() {ws.textAll(String(someValue));} // send to all connected clients
+            void broadcastTestData(const MyData& data); // send to all connected clients
             void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
             void tick();
     };
@@ -50,13 +55,21 @@
             }
     };
 
+    void MyWebserver::broadcastTestData(const MyData& data){
+        char buffer[150];
+        snprintf(buffer, sizeof(buffer), "{\"number\":%d,\"text\":\"%s\"}", data.number, data.text);
+        ws.textAll(buffer);
+    }
+
     void MyWebserver::tick(){
         ws.cleanupClients();
         // Example: update every second
         if (millis() - last > 1000) {
             last = millis();
-            someValue++;
-            broadcastValue();
+            MyData tmp;
+            tmp.number = someValue++;
+            strcpy(tmp.text, "Hello World");
+            broadcastTestData(tmp);
         }
     }
 
