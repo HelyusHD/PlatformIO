@@ -1,22 +1,26 @@
-#include "FS.h"
-#include "SD.h"
-#include "SPI.h"
-#include <CSV_Parser.h>
-#include "myLog.h"
-#include <networkConfig.h>
-#include <mySdManager.h>
 
-int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter){
-  LOG(LOG_INFO, String("Listing directory: ") + dirname);
+#include <CSV_Parser.h>
+#include <myLog.h>
+#include <mySdManager.h>
+#include <myServer.h>
+
+int MySdManager::listDir(const char * dirname, uint8_t levels, const char* nameFilter, int depths){
+  if (depths == 0) LOG(LOG_INFO, String("Listing directory: ") + dirname);
+
   int matchCount = 0;
+
+  String tabs = "";
+  for (int i=0; i < depths; i++){
+    tabs += "    ";
+  }
 
   File root = fs.open(dirname);
   if(!root){
-    LOG(LOG_ERROR, "Failed to open directory");
+    LOG(LOG_ERROR, tabs + String("Failed to open directory ") + dirname);
     return matchCount;
   }
   if(!root.isDirectory()){
-    LOG(LOG_ERROR, "Not a directory");
+    LOG(LOG_ERROR, tabs + String("Not a directory ") + dirname);
     return matchCount;
   }
   
@@ -24,12 +28,15 @@ int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameF
   File file = root.openNextFile();
   while(file){
     if(file.isDirectory()){
-      LOG(LOG_INFO, String("  DIR : ") + file.name());
+      LOG(LOG_INFO, tabs + String("  DIR : ") + file.name());
       if(levels){
-        matchCount += listDir(file.name(), levels -1,nameFilter);
+        String subdir = String(dirname);
+        if (!subdir.endsWith("/")) subdir += "/";
+        subdir += file.name();
+        matchCount += listDir(subdir.c_str(), levels - 1, nameFilter, depths+1);
       }
     } else {
-      LOG(LOG_INFO, String("  FILE: ") + file.name() + "  SIZE: " + file.size());
+      LOG(LOG_INFO, tabs + String("  FILE: ") + file.name() + "  SIZE: " + file.size());
       // increase found file count by one
         String fileName = file.name();
         if(!nameFilter || fileName.indexOf(nameFilter) >= 0){matchCount++;};
@@ -39,7 +46,7 @@ int mySdManager::listDir(const char * dirname, uint8_t levels, const char* nameF
   return matchCount;
 }
 
-void mySdManager::createDir(const char * path){
+void MySdManager::createDir(const char * path){
   LOG(LOG_DEBUG, String("Creating Dir: ") + path);
   if(fs.mkdir(path)){
     LOG(LOG_DEBUG, "Dir created");
@@ -48,7 +55,7 @@ void mySdManager::createDir(const char * path){
   }
 }
 
-void mySdManager::removeDir(const char * path){
+void MySdManager::removeDir(const char * path){
   LOG(LOG_DEBUG, String("Removing Dir: ") + path);
   if(fs.rmdir(path)){
     LOG(LOG_DEBUG, "Dir removed");
@@ -57,7 +64,7 @@ void mySdManager::removeDir(const char * path){
   }
 }
 
-void mySdManager::serialPrintFile(const char * path){
+void MySdManager::serialPrintFile(const char * path){
   LOG(LOG_DEBUG, String("Reading file: ") + path);
 
   File file = fs.open(path);
@@ -74,7 +81,7 @@ void mySdManager::serialPrintFile(const char * path){
   file.close();
 }
 
-void mySdManager::writeFile(const char * path, const char * message){
+void MySdManager::writeFile(const char * path, const char * message){
   LOG(LOG_DEBUG, String("Writing file: ") + path);
 
   File file = fs.open(path, FILE_WRITE);
@@ -90,7 +97,7 @@ void mySdManager::writeFile(const char * path, const char * message){
   file.close();
 }
 
-void mySdManager::appendFile(const char * path, const char * message){
+void MySdManager::appendFile(const char * path, const char * message){
   LOG(LOG_DEBUG, String("Appending to file: ") + path + "\n\tmessage//:" + String(message) + "//message end");
 
   File file = fs.open(path, FILE_APPEND);
@@ -106,7 +113,7 @@ void mySdManager::appendFile(const char * path, const char * message){
   file.close();
 }
 
-void mySdManager::renameFile(const char * path1, const char * path2){
+void MySdManager::renameFile(const char * path1, const char * path2){
   LOG(LOG_DEBUG, String("Renaming file ") + path1 + " to " + path2);
   if (fs.rename(path1, path2)) {
     LOG(LOG_DEBUG, "File renamed");
@@ -115,7 +122,7 @@ void mySdManager::renameFile(const char * path1, const char * path2){
   }
 }
 
-void mySdManager::deleteFile(const char * path){
+void MySdManager::deleteFile(const char * path){
   LOG(LOG_DEBUG, String("Deleting file: ") + path);
   if(fs.remove(path)){
     LOG(LOG_DEBUG, "File deleted");
@@ -124,7 +131,7 @@ void mySdManager::deleteFile(const char * path){
   }
 }
 
-void mySdManager::testFileIO(const char * path){
+void MySdManager::testFileIO(const char * path){
   File file = fs.open(path, FILE_WRITE);
   static uint8_t buf[512];
   size_t len = 0;
@@ -162,8 +169,8 @@ void mySdManager::testFileIO(const char * path){
   }
 }
 
-bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) { // reads a file at "path" and stores the string at char buffer[maxLen], returns true if succesfull
-  File file = SD.open(path);
+bool MySdManager::readFileToBuffer(const char* path, char* buffer, size_t maxLen) { // reads a file at "path" and stores the string at char buffer[maxLen], returns true if succesfull
+  File file = fs.open(path);
   if (!file) {
     LOG(LOG_ERROR, String("Failed to open file at path: ") + path);
     return false;
@@ -175,27 +182,24 @@ bool readFileToBuffer(const char* path, char* buffer, size_t maxLen) { // reads 
   return true;
 }
 
-mySdManager SdM(SD); // a handy tool to manage the SD file system
+MySdManager sdM(SD); // a handy tool to manage the SD file system
+MyServer server(sdM); // creates a server
 MyLogger* logger = nullptr; /* already reserves memory for the logger, but before we initiate it, we have to connect to the SD
-                            Later we use "logger = new MyLogger(SdM);" to write a configurated logger to that same memory which then correctly reffers to the SdM*/
-
-// connects to home network
-void wifiSetup(){
-  WiFi.begin(HOME_NETWORK_SSID, HOME_NETWORK_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) delay(500);
-}
+                            Later we use "logger = new MyLogger(sdM);" to write a configurated logger to that same memory which then correctly reffers to the sdM*/
 
 // example use of the SD
 void sdTest(){
-  SdM.listDir("/", 5);
-  SdM.createDir("/csv");
+  pinMode(17, OUTPUT);  // Set GPIO 17 as output for LED
+  digitalWrite(17, LOW);  // LED OFF
+  sdM.listDir("/", 5);
+  sdM.createDir("/csv");
   const char * csv_str = 
     "my_strings,my_numbers\n"
     "hello,5\n"
     "world,10\n";
-  SdM.writeFile("/csv/first.csv", csv_str);
+  sdM.writeFile("/csv/first.csv", csv_str);
   char content[256];
-  if (readFileToBuffer("/csv/first.csv", content, sizeof(content))){
+  if (sdM.readFileToBuffer("/csv/first.csv", content, sizeof(content))){
     CSV_Parser cp(content, "sL");
     LOG(LOG_INFO, "Accessing values by column name:");
     char **strings = (char**)cp["my_strings"];
@@ -205,9 +209,10 @@ void sdTest(){
       LOG(LOG_INFO, String(row) + ". String = " + strings[row]);
       LOG(LOG_INFO, String(row) + ". Number = " + numbers[row]);
     }
+    digitalWrite(17, HIGH); // LED ON
   }
 
-  //SdM.testFileIO("/ioTest.txt");
+  //sdM.testFileIO("/ioTest.txt");
   
   //LOG(LOG_INFO, String("Total space: ") + (SD.totalBytes() / (1024 * 1024)) + "MB");
   //LOG(LOG_INFO, String("Used space: ") + (SD.usedBytes() / (1024 * 1024)) + "MB");
@@ -215,6 +220,10 @@ void sdTest(){
 
 // connects the SD card
 bool sdSetup(){
+  /*MOSI	GPIO 23
+    MISO	GPIO 19
+    SCK	  GPIO 18
+    CS	  defined below*/
   if(!SD.begin(5)){ // defines the CS pin
     Serial.println("Card Mount Failed");
     return false;
@@ -238,23 +247,37 @@ bool sdSetup(){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   Serial.println(String("SD Card Size: ") + cardSize + "MB");
 
-  logger = new MyLogger(SdM);
-  logger->init();
-
   return true;
 }
 
 void setup(){
   Serial.begin(115200);
-  pinMode(17, OUTPUT);  // Set GPIO 17 as output for LED
-  digitalWrite(17, LOW);  // LED OFF
 
-  wifiSetup();
+  // connecting to SD
+  if (!sdSetup()){
+    delay(1000);
+    ESP.restart(); // full reset
+  }else{
+    // starting to log on the SD
+    // until there is a internet connection, it will log in a "offline_log" file
+    logger = new MyLogger(sdM);
+    logger->initFilePath(); // tells the logger where the SD is
+    LOG(LOG_WARN,"#########################################");
+    LOG(LOG_WARN,"#########       RESTARTED       #########");
+    LOG(LOG_WARN,"#########################################");
 
-  sdSetup();
-  sdTest();
-  digitalWrite(17, HIGH); // LED ON
+    // connecting to home network using a DNS name
+    server.connectToNetwork("water");
+    server.webserver.begin();
+
+    // the logger can now use the real time and update the last log
+    logger->initDate();
+
+    // debug function to test if SD works
+    sdTest();
+  }
 }
 
 void loop(){
+  server.webserver.tick();
 }
