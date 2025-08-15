@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Live Number Over Time — Sliding Window</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Chart.js UMD build -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; }
+    .hud { margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .hud div { padding: 6px 10px; border: 1px solid #ddd; border-radius: 10px; }
+    #wrap { max-width: 960px; }
+    /* Give the canvas a height so it actually renders */
+    #chart { width: 100%; height: 320px; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div class="hud">
+      <div>Number: <span id="num">—</span></div>
+      <div>Time: <span id="time">—</span></div>
+      <div>Text: <span id="txt">—</span></div>
+    </div>
+
+    <canvas id="chart"></canvas>
+  </div>
+
+  <script>
+    // --- DOM refs
+    const numEl  = document.getElementById('num');
+    const timeEl = document.getElementById('time');
+    const txtEl  = document.getElementById('txt');
+    const ctx    = document.getElementById('chart').getContext('2d');
+
+    // --- Sliding window length (milliseconds)
+    const WINDOW_MS = 200 * 1000; // show the last 200 seconds
+
+    // --- Chart.js setup (feed {x, y} points directly)
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'Number',
+          data: [],            // will contain objects: { x: <ms since epoch>, y: <number> }
+          borderWidth: 2,
+          borderColor: '#2563eb',
+          tension: 0.2,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        parsing: false,       // we provide x/y directly
+        scales: {
+          x: {
+            type: 'linear',   // numeric timestamps (ms)
+            title: { display: true, text: 'Time' },
+            ticks: {
+              // Render ms timestamps as localized time-of-day
+              callback: (v) => new Date(v).toLocaleTimeString()
+            }
+          },
+          y: {
+            title: { display: true, text: 'Number' }
+          }
+        },
+        plugins: {
+          legend: { display: true }
+        }
+      }
+    });
+
+    // --- WebSocket (use wss on https)
+    const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${scheme}://${location.host}/ws`);
+
+    ws.onmessage = (e) => {
+      const payload = JSON.parse(e.data);
+      const { number, time, text } = payload;
+
+      // HUD
+      numEl.textContent  = number;
+      timeEl.textContent = time ?? '';
+      txtEl.textContent  = text ?? '';
+
+      // Convert time to ms epoch; if missing/invalid, use now
+      let ts = Date.now();
+      if (typeof time === 'number' && Number.isFinite(time)) {
+        // If server already sends epoch ms or s:
+        ts = time > 1e12 ? time : time * 1000; // guess units
+      } else if (typeof time === 'string') {
+        const parsed = Date.parse(time);
+        if (!Number.isNaN(parsed)) ts = parsed;
+      }
+
+      const y = Number(number);
+      if (!Number.isFinite(y)) return; // skip bad data
+
+      // Append new point
+      const data = chart.data.datasets[0].data;
+      data.push({ x: ts, y });
+
+      // Trim anything older than the sliding window
+      const cutoff = ts - WINDOW_MS;
+      while (data.length && data[0].x < cutoff) data.shift();
+
+      // Move the visible x-range
+      chart.options.scales.x.min = cutoff;
+      chart.options.scales.x.max = ts;
+
+      // Fast update without animation
+      chart.update('none');
+    };
+
+    ws.onerror = (err) => console.error('WebSocket error:', err);
+  </script>
+</body>
+</html>

@@ -11,6 +11,7 @@
 
     struct MyData { // test data
         int number;
+        long int time;
         char text[100];
     };
 
@@ -57,17 +58,19 @@
 
     void MyWebserver::broadcastTestData(const MyData& data){
         char buffer[150];
-        snprintf(buffer, sizeof(buffer), "{\"number\":%d,\"text\":\"%s\"}", data.number, data.text);
+        snprintf(buffer, sizeof(buffer),
+        "{\"number\":%d,\"time\":%d,\"text\":\"%s\"}", data.number,data.time, data.text);
         ws.textAll(buffer);
     }
 
     void MyWebserver::tick(){
         ws.cleanupClients();
         // Example: update every second
-        if (millis() - last > 1000) {
+        if (millis() - last >= 1000) {
             last = millis();
             MyData tmp;
             tmp.number = someValue++;
+            tmp.time = last;
             strcpy(tmp.text, "Hello World");
             broadcastTestData(tmp);
         }

@@ -189,8 +189,8 @@ MyLogger* logger = nullptr; /* already reserves memory for the logger, but befor
 
 // example use of the SD
 void sdTest(){
-  pinMode(17, OUTPUT);  // Set GPIO 17 as output for LED
-  digitalWrite(17, LOW);  // LED OFF
+  pinMode(14, OUTPUT);  // Set GPIO 14 as output for LED
+  digitalWrite(14, LOW);  // LED OFF
   sdM.listDir("/", 5);
   sdM.createDir("/csv");
   const char * csv_str = 
@@ -209,7 +209,7 @@ void sdTest(){
       LOG(LOG_INFO, String(row) + ". String = " + strings[row]);
       LOG(LOG_INFO, String(row) + ". Number = " + numbers[row]);
     }
-    digitalWrite(17, HIGH); // LED ON
+    digitalWrite(14, HIGH); // LED ON
   }
 
   //sdM.testFileIO("/ioTest.txt");

@@ -2,15 +2,18 @@
 <html>
 <body>
   <div>Number: <span id="num"></span></div>
+  <div>Time: <span id="time"></span></div>
   <div>Text: <span id="txt"></span></div>
   <script>
     const num = document.getElementById('num');
+    const t = document.getElementById('time');
     const txt = document.getElementById('txt');
     const ws = new WebSocket(`ws://${location.host}/ws`);
     ws.onmessage = e => {
       const data = JSON.parse(e.data);
       num.textContent = data.number;
       txt.textContent = data.text;
+      time.textContent = data.time;
     };
   </script>
 </body>
