@@ -1,0 +1,2 @@
+REQUIRES esp_wifi
+PRIV_REQUIRES esp_wifi
