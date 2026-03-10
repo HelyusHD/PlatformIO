@@ -1,35 +1,29 @@
 #include <Arduino.h>
 #include "esp_now.h"
 #include "WiFi.h"
-/*
-#include <plog\Log.h> // the log lib
-#include <plog/Init.h>
-#include <plog/Formatters/TxtFormatter.h>
-#include <plog/Appenders/ArduinoAppender.h>
-*/
-
 #include "networkConfig.h"
 
+#include <Logger.h>
 
-//plog::ArduinoAppender<plog::TxtFormatter> arduinoAppender(Serial); // makes logging over serial possible
+
 int logSetup(){
-    Serial.begin(115200); // opens serial connection
-    //plog::init(plog::debug, &arduinoAppender); // starts the logger over serial
+    Serial.begin(115200);
+    delay(1000);
+    Logger::setLogLevel(Logger::VERBOSE);
 
-    PLOGD << "--- setup() running ---"; // log on DEBUG level
 
     WiFi.mode(WIFI_STA);
     delay(100);
     String mac = WiFi.macAddress();
-    PLOGI << "macAddress: " << mac.c_str();
+    Logger::notice("MAC: " + mac);
 
     if (esp_now_init() != ESP_OK) {
-        PLOGE << "ESP-NOW init failed"; // log on ERROR level
+        Logger::fatal("ESP-NOW init failed");
         return 1;
     }
     uint32_t version;
     esp_now_get_version(&version);
-    PLOGD << "ESP-NOW version: " << String(version).c_str(); // log on DEBUG level
+    Logger::verbose("ESP-NOW version: " + String(version));
     return 0;
 }
 
@@ -56,13 +50,10 @@ typedef struct {
         peerInfo.channel = 0;  
         peerInfo.encrypt = false;
         if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-        PLOGE << "Failed to add peer";
+        Logger::fatal("Failed to add peer");
             return;
         }
-
-        PLOGI << "ESP-NOW initialized";
-
-        PLOGD << "--- setup() done ---"; // log on DEBUG level
+        Logger::notice("ESP-NOW initialized");
     }
 
     Message msg;
@@ -71,9 +62,9 @@ typedef struct {
         esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &msg, sizeof(msg));
 
         if (result == ESP_OK) {
-            PLOGI << "Message queued";
+            Logger::verbose("success sending");
         } else {
-            PLOGI << "Send error";
+            Logger::verbose("failed sending");
         }
 
         msg.counter++;
@@ -87,16 +78,14 @@ typedef struct {
         Message msg;
 
         if (len != sizeof(msg)) {
-            PLOGE << "Unexpected packet size: " << len;
+            Logger::error("Unexpected packet size: " + String(len));
             return;
         }
 
         memcpy(&msg, incomingData, sizeof(msg));
 
-        Serial.printf("Received from %02X:%02X:%02X:%02X:%02X:%02X\n",
-                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-        PLOGI << "Counter: " << msg.counter;
+        Logger::verbose("Received from " + String(mac[0])+":" + String(mac[1])+":" + String(mac[2])+":" + String(mac[3])+":" + String(mac[4])+":" + String(mac[5]));
+        Logger::verbose("Counter: " + String(msg.counter));
     }
 
     void setup(){
