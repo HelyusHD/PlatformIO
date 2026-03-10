@@ -1,0 +1,6 @@
+[submodule "Projects/RGB-rework/lib/src/3rd-party/plog"]
+	path = Projects/RGB-rework/lib/src/3rd-party/plog
+	url = https://github.com/SergiusTheBest/plog.git
+[submodule "Projects/RGB-rework/src/3rd-party/plog"]
+	path = Projects/RGB-rework/src/3rd-party/plog
+	url = https://github.com/SergiusTheBest/plog.git
